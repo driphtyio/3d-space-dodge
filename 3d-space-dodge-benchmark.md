@@ -164,4 +164,21 @@ Three patterns emerge:
 
 3. **Iteration kills local models.** Prompt 1 → Prompt 2 was where most broke. They could produce an initial scene, but couldn't correctly modify it without introducing syntax errors (extra parens, undefined vars, wrong material types). That's a working-memory / context-retention issue under compound instructions.
 
-The takeaway for builders: if you're iterating on a game with an LLM, use an API model. Local models are improving but the failure rate (6/8) is too high for production use — even for a simple 3D dodge game.
+### Does a single comprehensive prompt help?
+
+We tested this hypothesis on Mistral Small (which passed under 2-prompt format) by giving it a single prompt containing ALL requirements at once (game + bot mode + glow + boundary). The result was **worse, not better**:
+
+| Metric | 2-Prompt | Single Prompt |
+|--------|----------|---------------|
+| Output size | 11,675 chars | 4,159 chars |
+| Bot mode | ✅ | ❌ Missing |
+| Glow pulse | ✅ | ❌ Missing |
+| Arena boundary | ✅ | ✅ Present |
+| JS errors | 0 | 0 |
+| Material type | MeshStandardMaterial (correct) | MeshBasicMaterial + emissive (bug) |
+
+The single-prompt game rendered with no JS errors but was **missing bot mode and glow entirely** — the model dropped features under the cognitive load of the longer prompt. The 2-prompt format actually produces more complete output because each prompt has a narrower scope.
+
+**The real issue isn't the 2-prompt format** — it's that local models can't reliably produce syntactically correct code in either format. The iteration process exposes weaknesses in working memory and syntax tracking that API models handle gracefully.
+
+The takeaway for builders: if you're iterating on a game with an LLM, use an API model. Local models are improving but the failure rate (6/8) is too high for production use — even for a simple 3D dodge game, even with a single comprehensive prompt.
