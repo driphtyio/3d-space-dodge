@@ -59,7 +59,9 @@ All scores are composite: output quality, build speed, token efficiency, bug cou
 
 ### What the Numbers Tell Us
 
-**Only 10 of 18 models shipped clean working games.** 5 produce WebGL-rendered output but have code bugs from the model (const reassignment, undefined variables, syntax errors in game logic). 2 failed completely (no canvas). 1 is a headless testing false positive (works in browser).
+**11 of 18 models shipped clean working games.** 5 produce WebGL-rendered output but have code bugs from the model (const reassignment, undefined variables, syntax errors in game logic). 2 failed completely (no canvas). 1 is a headless testing false positive (works in browser).
+
+**The biggest differentiator is output correctness, not speed.** A model that finishes in 2 seconds with broken code loses to one that takes 30 seconds with clean output. Fast builds with syntax errors or runtime bugs still count as failures.
 
 **1 variant required a framework-level fix:** poolside/laguna-m.1 used `MeshBasicMaterial` (which has no `emissive` property) and then called `.emissive.setRGB()` — a Three.js API misuse. This was caught by the user seeing a blank screen. The fix was a one-word change to `MeshStandardMaterial`. This highlights a testing blind spot: WebGL context existing ≠ game loop running. The error fires in the animation loop, after the initial frame renders.
 
@@ -67,11 +69,9 @@ All scores are composite: output quality, build speed, token efficiency, bug cou
 
 **Speed gap is absurd.** Cloud models finish in 2-30 seconds. Local models take 2-11 minutes. The 550B Nemotron Ultra on OpenRouter finished in 2 seconds — faster than the 4B Nemotron Nano running locally (209s). That's a 100x speedup for using API vs local.
 
-**Size ≠ quality, but it correlates.** DeepSeek V4 Pro produced the largest output (18.5 KB, 447 lines) and scored the highest. The smallest output (Gemma-4-12b-coder-fable at 3.4 KB) still shipped a working game but had fewer features. The big models write more complete code.
+**Size ≠ quality.** DeepSeek V4 Pro produced the largest output (18.5 KB) and scored highest, but small output doesn't mean broken — the smallest working output was Gemma-4-12b-qat at 8.3 KB (PASS, score 70). The real signal is whether the output is complete and syntactically valid.
 
-**Free tier models are shockingly good.** Mistral Small, owl-alpha, and Gemma-4-31B all scored above 80 on the free tier. For a simple 3D game under 500 lines, you don't need a paid API.
-
-**Local models are viable but slow.** Llama 3.1 8B is the clear winner among local options — 128s total, 8.0 KB output, bot mode working. It's 2-5x faster than other local models of similar size. If you're running on a Mac Mini M4, this is your best bet.
+**Speed matters less than correctness.** Cloud models finished in 2-30 seconds. Local models took 2-11 minutes. But a fast model that ships broken JavaScript loses to a slow model with clean output. If you're iterating during development, cloud APIs save you hours.
 
 **Chain-of-thought models waste budget.** Qwen 3.5 9B spent 40% of its token budget (2,165 of 5,435 tokens) on reasoning before generating code. That doesn't make the output better — it just makes it slower and more expensive.
 
@@ -149,4 +149,4 @@ Every model's output is playable. Each variant page shows the exact build metric
 
 ### Key Takeaway
 
-For a simple 3D game, **every model that can follow instructions will ship working code.** The differentiation is in speed, output density, and instruction adherence under iteration. The next test is harder: can these models build an 80s-era game with AI, tilemaps, and state machines?
+For a simple 3D game, **most models can produce working code but only 11 of 18 shipped cleanly.** 5 had syntax or runtime errors from the model, and 2 failed entirely. Speed and output size matter less than whether the code actually runs — a model that finishes in 2 seconds with broken JavaScript is worse than one that takes 30 seconds with clean output. The next test is harder: can these models build an 80s-era game with AI, tilemaps, and state machines?
