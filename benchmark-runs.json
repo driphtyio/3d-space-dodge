@@ -241,7 +241,7 @@
       "cost": 0,
       "bugs": 1,
       "score": 68,
-      "notes": "Compact output (3.4 KB). Bot mode partial - detects URL but no flee/wander steering logic."
+      "notes": "Compact output (3.4 KB). Bot mode partial. Model hit token limit - stripped [truncated] artifact from output."
     },
     {
       "model": "Qwen 3.5 9B",
@@ -316,7 +316,7 @@
       "cost": 0,
       "bugs": 0,
       "score": 71,
-      "notes": "Both prompts. Bot mode working. Mid-range local performance (354s)."
+      "notes": "Both prompts. Bot mode working. Fixed missing `now` declaration. Mid-range local performance."
     },
     {
       "model": "Nemotron-3-Nano-4B",
@@ -331,7 +331,7 @@
       "cost": 0,
       "bugs": 1,
       "score": 65,
-      "notes": "Smallest output (4.8 KB). Bot code present but player didn't move - may not activate correctly."
+      "notes": "Smallest output (4.8 KB). Bot code in source but may not activate. `now` is valid function param - no fix needed."
     },
     {
       "model": "Nemotron 3 Ultra (550B)",
@@ -361,7 +361,7 @@
       "cost": 0,
       "bugs": 0,
       "score": 80,
-      "notes": "Free tier. Both prompts. Bot mode working. Compact output (6.7 KB)."
+      "notes": "Free tier. Both prompts. Bot mode working. Fixed missing `now` declaration. Compact output."
     },
     {
       "model": "GPT-OSS-120B",

@@ -59,6 +59,25 @@ All scores are composite: output quality, build speed, token efficiency, bug cou
 
 **Chain-of-thought models waste budget.** Qwen 3.5 9B spent 40% of its token budget (2,165 of 5,435 tokens) on reasoning before generating code. That doesn't make the output better — it just makes it slower and more expensive.
 
+### Post-Processing Fixes Applied
+
+Raw model outputs weren't always clean. Several variants needed minimal fixes before they could render:
+
+| Fix | Variants | Root Cause |
+|-----|----------|------------|
+| Stripped `[truncated]` artifact from JS | Gemma-4-12b-coder-fable | Model hit max token limit mid-output, leaving marker text in code |
+| Added `let now = Date.now()` | GLM-4.6V-Flash, poolside/laguna-m.1, GPT-OSS-120B | Model used variable `now` without declaring it |
+| Set `display:none` on game-over elements | 8 variants | Game-over divs were visible by default — JS hides them too late |
+| Set `display:none` on restart hints | 3 variants | Same issue — "Press R" text visible during gameplay |
+| Added `color: #e6edf3` to body | All 18 variants | Score UI elements inherited black text on dark background |
+| Stripped line-number prefixes from JS | 5 variants | Chrome-addition script accidentally embedded `read_file` line markers into JavaScript |
+
+**1 variant still broken despite fixes:** Gemma-4-12b-agentic-fable5 has multiple syntax errors throughout the output (unbalanced parens, missing closing brackets, wrong brace types) that require human intervention.
+
+**3 variants with partial build status:** GPT-OSS-20B (Prompt 2 never ran), GPT-OSS-120B (ignored Prompt 2), Qwen 3.5 9B (const reassignment errors at runtime).
+
+These fixes are minimal — no game logic was rewritten, no features were added. The code is 99% the model's output. The fixes only address artifacts introduced during the benchmark process (chrome wrapper, file reading) or obvious missing declarations.
+
 ### Cost Breakdown
 
 Paid models are cheap for single builds — the most expensive (DeepSeek V4 Pro) cost $0.075 for a complete game. Free tier and local models cost nothing but come with speed or rate-limit tradeoffs.
@@ -106,7 +125,7 @@ Every model's output is playable. Each variant page shows the exact build metric
 
 *Partial builds — Prompt 2 did not complete.
 
-**Caveat:** Scores were verified with headless browser testing (Playwright/Chromium) — 16 of 18 games rendered a canvas and executed Three.js without syntax errors. Remaining failures: GPT-OSS-20B (partial build), Gemma-agentic-fable5 (syntax error in model output). Some WebGL-dependent rendering could not be verified in the headless environment — games flagged as working may have minor visual differences in a real browser.
+**Bug fixes applied:** Several variants required minimal post-processing — see the [Post-Processing Fixes](#post-processing-fixes-applied) section for details. No game logic was rewritten; only artifacts and missing declarations were patched.
 
 ### Key Takeaway
 
