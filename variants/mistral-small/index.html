@@ -60,319 +60,274 @@
   </div>
 </header>
   <div id="game-container">
-46|    <div id="info">Score: <span id="score">0</span></div>
-47|    <div id="game-over">GAME OVER</div>
-48|    <div id="restart">Press R to restart</div>
-49|    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-50|    <script>
-51|        // Game variables
-52|        let score = 0;
-53|        let gameOver = false;
-54|        let enemies = [];
-55|        let clock = new THREE.Clock();
-56|        let lastScoreTime = 0;
-57|        let botMode = window.location.search.includes('bot=true');
-58|
-59|        // Scene setup
-60|        const scene = new THREE.Scene();
-61|        scene.background = new THREE.Color(0x000000);
-62|
-63|        // Camera
-64|        const camera = new THREE.PerspectiveCamera(75, 680/480, 0.1, 1000);
-65|        camera.position.set(0, 15, 15);
-66|        camera.lookAt(0, 0, 0);
-67|
-68|        // Renderer
-69|        const renderer = new THREE.WebGLRenderer({ antialias: true });
-70|        renderer.setSize(680, 480);
-71|        renderer.shadowMap.enabled = true;
-72|        document.body.appendChild(renderer.domElement);
-73|
-74|        // Lighting
-75|        const ambientLight = new THREE.AmbientLight(0x222222);
-76|        scene.add(ambientLight);
-77|
-78|        const directionalLight = new THREE.DirectionalLight(0x4488ff, 1);
-79|        directionalLight.position.set(1, 1, 1);
-80|        directionalLight.castShadow = true;
-81|        scene.add(directionalLight);
-82|
-83|        // Grid plane
-84|        const gridHelper = new THREE.GridHelper(50, 50, 0x333333, 0x222222);
-85|        scene.add(gridHelper);
-86|
-87|        // Arena boundary ring
-88|        const boundaryGeometry = new THREE.RingGeometry(20, 20.5, 64);
-89|        const boundaryMaterial = new THREE.MeshBasicMaterial({
-90|            color: 0x0066ff,
-91|            side: THREE.DoubleSide,
-92|            transparent: true,
-93|            opacity: 0.3
-94|        });
-95|        const boundary = new THREE.Mesh(boundaryGeometry, boundaryMaterial);
-96|        boundary.rotation.x = Math.PI / 2;
-97|        boundary.position.y = 0.1;
-98|        scene.add(boundary);
-99|
-100|        // Player
-101|        const playerGeometry = new THREE.SphereGeometry(1, 32, 32);
-102|        const playerMaterial = new THREE.MeshStandardMaterial({
-103|            color: 0x0066ff,
-104|            emissive: 0x00aaff,
-105|            emissiveIntensity: 0.5
-106|        });
-107|        const player = new THREE.Mesh(playerGeometry, playerMaterial);
-108|        player.position.set(0, 0, 0);
-109|        player.castShadow = true;
-110|        scene.add(player);
-111|
-112|        // Player glow pulse animation
-113|        let glowIntensity = 0.5;
-114|        let glowDirection = 0.01;
-115|
-116|        // Enemy material
-117|        const enemyMaterial = new THREE.MeshStandardMaterial({
-118|            color: 0xff0000,
-119|            emissive: 0xff2222,
-120|            emissiveIntensity: 0.8
-121|        });
-122|
-123|        // Movement controls
-124|        const keys = { w: false, a: false, s: false, d: false };
-125|        document.addEventListener('keydown', (e) => {
-126|            if (e.key.toLowerCase() in keys) {
-127|                keys[e.key.toLowerCase()] = true;
-128|            }
-129|            if (e.key.toLowerCase() === 'r' && gameOver) {
-130|                resetGame();
-131|            }
-132|        });
-133|        document.addEventListener('keyup', (e) => {
-134|            if (e.key.toLowerCase() in keys) {
-135|                keys[e.key.toLowerCase()] = false;
-136|            }
-137|        });
-138|
-139|        // Spawn enemies
-140|        function spawnEnemy() {
-141|            if (gameOver) return;
-142|
-143|            const edge = Math.floor(Math.random() * 4);
-144|            let position;
-145|
-146|            switch (edge) {
-147|                case 0: // top
-148|                    position = new THREE.Vector3(
-149|                        (Math.random() - 0.5) * 40,
-150|                        0,
-151|                        25
-152|                    );
-153|                    break;
-154|                case 1: // right
-155|                    position = new THREE.Vector3(
-156|                        25,
-157|                        0,
-158|                        (Math.random() - 0.5) * 40
-159|                    );
-160|                    break;
-161|                case 2: // bottom
-162|                    position = new THREE.Vector3(
-163|                        (Math.random() - 0.5) * 40,
-164|                        0,
-165|                        -25
-166|                    );
-167|                    break;
-168|                case 3: // left
-169|                    position = new THREE.Vector3(
-170|                        -25,
-171|                        0,
-172|                        (Math.random() - 0.5) * 40
-173|                    );
-174|                    break;
-175|            }
-176|
-177|            const enemyGeometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-178|            const enemy = new THREE.Mesh(enemyGeometry, enemyMaterial);
-179|            enemy.position.copy(position);
-180|            enemy.castShadow = true;
-181|            scene.add(enemy);
-182|            enemies.push(enemy);
-183|        }
-184|
-185|        // Check collisions
-186|        function checkCollisions() {
-187|            for (let i = enemies.length - 1; i >= 0; i--) {
-188|                const enemy = enemies[i];
-189|                const distance = player.position.distanceTo(enemy.position);
-190|
-191|                if (distance < 2) {
-192|                    gameOver = true;
-193|                    document.getElementById('game-over').style.display = 'block';
-194|                    document.getElementById('restart').style.display = 'block';
-195|                    return true;
-196|                }
-197|            }
-198|            return false;
-199|        }
-200|
-201|        // Reset game
-202|        function resetGame() {
-203|            // Remove all enemies
-204|            enemies.forEach(enemy => scene.remove(enemy));
-205|            enemies = [];
-206|
-207|            // Reset player
-208|            player.position.set(0, 0, 0);
-209|
-210|            // Reset score
-211|            score = 0;
-212|            document.getElementById('score').textContent = score;
-213|
-214|            // Reset game state
-215|            gameOver = false;
-216|            document.getElementById('game-over').style.display = 'none';
-217|            document.getElementById('restart').style.display = 'none';
-218|        }
-219|
-220|        // Bot movement logic
-221|        function updateBot() {
-222|            if (!botMode || gameOver) return;
-223|
-224|            // Find nearest enemy
-225|            let nearestEnemy = null;
-226|            let minDistance = Infinity;
-227|
-228|            enemies.forEach(enemy => {
-229|                const distance = player.position.distanceTo(enemy.position);
-230|                if (distance < minDistance) {
-231|                    minDistance = distance;
-232|                    nearestEnemy = enemy;
-233|                }
-234|            });
-235|
-236|            // Flee from nearest enemy with random wander
-237|            if (nearestEnemy && minDistance < 15) {
-238|                // Flee vector
-239|                const fleeDirection = new THREE.Vector3().subVectors(
-240|                    player.position,
-241|                    nearestEnemy.position
-242|                ).normalize();
-243|
-244|                // Random wander direction
-245|                const wanderAngle = Math.random() * Math.PI * 2;
-246|                const wanderDirection = new THREE.Vector3(
-247|                    Math.cos(wanderAngle),
-248|                    0,
-249|                    Math.sin(wanderAngle)
-250|                ).normalize();
-251|
-252|                // Combine flee and wander (more flee when closer)
-253|                const fleeWeight = Math.min(1, 15 / minDistance);
-254|                const wanderWeight = 1 - fleeWeight;
-255|
-256|                fleeDirection.multiplyScalar(fleeWeight);
-257|                wanderDirection.multiplyScalar(wanderWeight);
-258|
-259|                const finalDirection = new THREE.Vector3().addVectors(
-260|                    fleeDirection,
-261|                    wanderDirection
-262|                ).normalize();
-263|
-264|                // Apply movement
-265|                player.position.add(finalDirection.multiplyScalar(0.1));
-266|            } else {
-267|                // Random wander when no enemies nearby
-268|                const wanderAngle = Math.random() * Math.PI * 2;
-269|                const wanderDirection = new THREE.Vector3(
-270|                    Math.cos(wanderAngle),
-271|                    0,
-272|                    Math.sin(wanderAngle)
-273|                ).normalize();
-274|
-275|                player.position.add(wanderDirection.multiplyScalar(0.05));
-276|            }
-277|
-278|            // Edge avoidance
-279|            if (player.position.x < -18) {
-280|                player.position.x = -18;
-281|            } else if (player.position.x > 18) {
-282|                player.position.x = 18;
-283|            }
-284|
-285|            if (player.position.z < -18) {
-286|                player.position.z = -18;
-287|            } else if (player.position.z > 18) {
-288|                player.position.z = 18;
-289|            }
-290|
-291|            // Camera follow
-292|            camera.position.set(
-293|                player.position.x,
-294|                15,
-295|                player.position.z + 15
-296|            );
-297|            camera.lookAt(player.position);
-298|        }
-299|
-300|        // Animation loop
-301|        function animate() {
-302|            if (!gameOver) {
-303|                requestAnimationFrame(animate);
-304|
-305|                // Player glow pulse
-306|                glowIntensity += glowDirection;
-307|                if (glowIntensity > 0.7) glowDirection = -0.01;
-308|                if (glowIntensity < 0.3) glowDirection = 0.01;
-309|                player.material.emissiveIntensity = glowIntensity;
-310|
-311|                // Player movement
-312|                const speed = 0.1;
-313|                if (!botMode) {
-314|                    if (keys.w) player.position.z -= speed;
-315|                    if (keys.s) player.position.z += speed;
-316|                    if (keys.a) player.position.x -= speed;
-317|                    if (keys.d) player.position.x += speed;
-318|
-319|                    // Keep player in bounds
-320|                    player.position.x = Math.max(-20, Math.min(20, player.position.x));
-321|                    player.position.z = Math.max(-20, Math.min(20, player.position.z));
-322|                } else {
-323|                    updateBot();
-324|                }
-325|
-326|                // Spawn enemies
-327|                if (Math.random() < 0.01) {
-328|                    spawnEnemy();
-329|                }
-330|
-331|                // Move enemies toward player
-332|                enemies.forEach(enemy => {
-333|                    const direction = new THREE.Vector3().subVectors(
-334|                        player.position,
-335|                        enemy.position
-336|                    ).normalize();
-337|                    enemy.position.add(direction.multiplyScalar(0.05));
-338|                });
-339|
-340|                // Check collisions
-341|                checkCollisions();
-342|
-343|                // Score increment
-344|                const currentTime = clock.getElapsedTime();
-345|                if (currentTime - lastScoreTime >= 1) {
-346|                    score++;
-347|                    document.getElementById('score').textContent = score;
-348|                    lastScoreTime = currentTime;
-349|                }
-350|            }
-351|
-352|            renderer.render(scene, camera);
-353|        }
-354|
-355|        // Start game
-356|        animate();
-357|    </script>
-358|
+<div id="info">Score: <span id="score">0</span></div>
+<div id="game-over">GAME OVER</div>
+<div id="restart">Press R to restart</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script>
+// Game variables
+let score = 0;
+let gameOver = false;
+let enemies = [];
+let clock = new THREE.Clock();
+let lastScoreTime = 0;
+let botMode = window.location.search.includes('bot=true');
+// Scene setup
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+// Camera
+const camera = new THREE.PerspectiveCamera(75, 680/480, 0.1, 1000);
+camera.position.set(0, 15, 15);
+camera.lookAt(0, 0, 0);
+// Renderer
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(680, 480);
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+// Lighting
+const ambientLight = new THREE.AmbientLight(0x222222);
+scene.add(ambientLight);
+const directionalLight = new THREE.DirectionalLight(0x4488ff, 1);
+directionalLight.position.set(1, 1, 1);
+directionalLight.castShadow = true;
+scene.add(directionalLight);
+// Grid plane
+const gridHelper = new THREE.GridHelper(50, 50, 0x333333, 0x222222);
+scene.add(gridHelper);
+// Arena boundary ring
+const boundaryGeometry = new THREE.RingGeometry(20, 20.5, 64);
+const boundaryMaterial = new THREE.MeshBasicMaterial({
+color: 0x0066ff,
+side: THREE.DoubleSide,
+transparent: true,
+opacity: 0.3
+});
+const boundary = new THREE.Mesh(boundaryGeometry, boundaryMaterial);
+boundary.rotation.x = Math.PI / 2;
+boundary.position.y = 0.1;
+scene.add(boundary);
+// Player
+const playerGeometry = new THREE.SphereGeometry(1, 32, 32);
+const playerMaterial = new THREE.MeshStandardMaterial({
+color: 0x0066ff,
+emissive: 0x00aaff,
+emissiveIntensity: 0.5
+});
+const player = new THREE.Mesh(playerGeometry, playerMaterial);
+player.position.set(0, 0, 0);
+player.castShadow = true;
+scene.add(player);
+// Player glow pulse animation
+let glowIntensity = 0.5;
+let glowDirection = 0.01;
+// Enemy material
+const enemyMaterial = new THREE.MeshStandardMaterial({
+color: 0xff0000,
+emissive: 0xff2222,
+emissiveIntensity: 0.8
+});
+// Movement controls
+const keys = { w: false, a: false, s: false, d: false };
+document.addEventListener('keydown', (e) => {
+if (e.key.toLowerCase() in keys) {
+keys[e.key.toLowerCase()] = true;
+}
+if (e.key.toLowerCase() === 'r' && gameOver) {
+resetGame();
+}
+});
+document.addEventListener('keyup', (e) => {
+if (e.key.toLowerCase() in keys) {
+keys[e.key.toLowerCase()] = false;
+}
+});
+// Spawn enemies
+function spawnEnemy() {
+if (gameOver) return;
+const edge = Math.floor(Math.random() * 4);
+let position;
+switch (edge) {
+case 0: // top
+position = new THREE.Vector3(
+(Math.random() - 0.5) * 40,
+0,
+25
+);
+break;
+case 1: // right
+position = new THREE.Vector3(
+25,
+0,
+(Math.random() - 0.5) * 40
+);
+break;
+case 2: // bottom
+position = new THREE.Vector3(
+(Math.random() - 0.5) * 40,
+0,
+-25
+);
+break;
+case 3: // left
+position = new THREE.Vector3(
+-25,
+0,
+(Math.random() - 0.5) * 40
+);
+break;
+}
+const enemyGeometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+const enemy = new THREE.Mesh(enemyGeometry, enemyMaterial);
+enemy.position.copy(position);
+enemy.castShadow = true;
+scene.add(enemy);
+enemies.push(enemy);
+}
+// Check collisions
+function checkCollisions() {
+for (let i = enemies.length - 1; i >= 0; i--) {
+const enemy = enemies[i];
+const distance = player.position.distanceTo(enemy.position);
+if (distance < 2) {
+gameOver = true;
+document.getElementById('game-over').style.display = 'block';
+document.getElementById('restart').style.display = 'block';
+return true;
+}
+}
+return false;
+}
+// Reset game
+function resetGame() {
+// Remove all enemies
+enemies.forEach(enemy => scene.remove(enemy));
+enemies = [];
+// Reset player
+player.position.set(0, 0, 0);
+// Reset score
+score = 0;
+document.getElementById('score').textContent = score;
+// Reset game state
+gameOver = false;
+document.getElementById('game-over').style.display = 'none';
+document.getElementById('restart').style.display = 'none';
+}
+// Bot movement logic
+function updateBot() {
+if (!botMode || gameOver) return;
+// Find nearest enemy
+let nearestEnemy = null;
+let minDistance = Infinity;
+enemies.forEach(enemy => {
+const distance = player.position.distanceTo(enemy.position);
+if (distance < minDistance) {
+minDistance = distance;
+nearestEnemy = enemy;
+}
+});
+// Flee from nearest enemy with random wander
+if (nearestEnemy && minDistance < 15) {
+// Flee vector
+const fleeDirection = new THREE.Vector3().subVectors(
+player.position,
+nearestEnemy.position
+).normalize();
+// Random wander direction
+const wanderAngle = Math.random() * Math.PI * 2;
+const wanderDirection = new THREE.Vector3(
+Math.cos(wanderAngle),
+0,
+Math.sin(wanderAngle)
+).normalize();
+// Combine flee and wander (more flee when closer)
+const fleeWeight = Math.min(1, 15 / minDistance);
+const wanderWeight = 1 - fleeWeight;
+fleeDirection.multiplyScalar(fleeWeight);
+wanderDirection.multiplyScalar(wanderWeight);
+const finalDirection = new THREE.Vector3().addVectors(
+fleeDirection,
+wanderDirection
+).normalize();
+// Apply movement
+player.position.add(finalDirection.multiplyScalar(0.1));
+} else {
+// Random wander when no enemies nearby
+const wanderAngle = Math.random() * Math.PI * 2;
+const wanderDirection = new THREE.Vector3(
+Math.cos(wanderAngle),
+0,
+Math.sin(wanderAngle)
+).normalize();
+player.position.add(wanderDirection.multiplyScalar(0.05));
+}
+// Edge avoidance
+if (player.position.x < -18) {
+player.position.x = -18;
+} else if (player.position.x > 18) {
+player.position.x = 18;
+}
+if (player.position.z < -18) {
+player.position.z = -18;
+} else if (player.position.z > 18) {
+player.position.z = 18;
+}
+// Camera follow
+camera.position.set(
+player.position.x,
+15,
+player.position.z + 15
+);
+camera.lookAt(player.position);
+}
+// Animation loop
+function animate() {
+if (!gameOver) {
+requestAnimationFrame(animate);
+// Player glow pulse
+glowIntensity += glowDirection;
+if (glowIntensity > 0.7) glowDirection = -0.01;
+if (glowIntensity < 0.3) glowDirection = 0.01;
+player.material.emissiveIntensity = glowIntensity;
+// Player movement
+const speed = 0.1;
+if (!botMode) {
+if (keys.w) player.position.z -= speed;
+if (keys.s) player.position.z += speed;
+if (keys.a) player.position.x -= speed;
+if (keys.d) player.position.x += speed;
+// Keep player in bounds
+player.position.x = Math.max(-20, Math.min(20, player.position.x));
+player.position.z = Math.max(-20, Math.min(20, player.position.z));
+} else {
+updateBot();
+}
+// Spawn enemies
+if (Math.random() < 0.01) {
+spawnEnemy();
+}
+// Move enemies toward player
+enemies.forEach(enemy => {
+const direction = new THREE.Vector3().subVectors(
+player.position,
+enemy.position
+).normalize();
+enemy.position.add(direction.multiplyScalar(0.05));
+});
+// Check collisions
+checkCollisions();
+// Score increment
+const currentTime = clock.getElapsedTime();
+if (currentTime - lastScoreTime >= 1) {
+score++;
+document.getElementById('score').textContent = score;
+lastScoreTime = currentTime;
+}
+}
+renderer.render(scene, camera);
+}
+// Start game
+animate();
+</script>
 </div>
   <details style="max-width: 1200px; width:100%; margin: 0.5em auto;">
     <summary style="color: #00d4ff; cursor: pointer; font-size: 0.82em; padding: 0.3em 0; user-select: none; text-align: center;">Game details &mdash; click to expand</summary>

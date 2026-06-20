@@ -449,8 +449,8 @@
       "tokens_used": 2577,
       "file_size": "3.6 KB",
       "cost": 0,
-      "bugs": 0,
-      "score": 71,
+      "bugs": 1,
+      "score": 60,
       "notes": "Both prompts. Bot mode. Compact output (3.6 KB). v2 agentic variant."
     }
   ]

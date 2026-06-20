@@ -36,223 +36,185 @@
   </div>
 </header>
   <div id="game-container">
-13|    <div id="ui">Score: 0</div>
-14|    <div id="msg">GAME OVER<br><span style="font-size: 20px;">Press R to Restart</span></div>
-15|    <canvas id="gameCanvas" width="680" height="480"></canvas>
-16|
-17|    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-18|    <script>
-19|        const canvas = document.getElementById('gameCanvas');
-20|        const ui = document.getElementById('ui');
-21|        const msg = document.getElementById('msg');
-22|
-23|        let scene, camera, renderer, player, grid, boundaryRing;
-24|        let enemies = [];
-25|        let score = 0;
-26|        let gameActive = true;
-27|        let keys = {};
-28|        let lastTime = 0;
-29|        let spawnTimer = 0;
-30|
-31|        // Bot variables
-32|        const isBot = new URLSearchParams(window.location.search).get('bot') === 'true';
-33|        let botDirection = new THREE.Vector3(1, 0, 0);
-34|        let botTimer = 0;
-35|        let botTimerLimit = 1000;
-36|
-37|        const PLAYER_SPEED = 0.15;
-38|        const ENEMY_SPEED = 0.08;
-39|        const SPAWN_RATE = 1000; // ms
-40|
-41|        function init() {
-42|            scene = new THREE.Scene();
-43|            scene.background = new THREE.Color(0x020202);
-44|            scene.fog = new THREE.Fog(0x020202, 10, 50);
-45|
-46|            camera = new THREE.PerspectiveCamera(75, 680 / 480, 0.1, 1000);
-47|            
-48|            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-49|            renderer.setSize(680, 480);
-50|
-51|            // Lights
-52|            const ambient = new THREE.AmbientLight(0x404040, 2);
-53|            scene.add(ambient);
-54|
-55|            const pointLight = new THREE.PointLight(0x00ffff, 2, 20);
-56|            window.playerLight = pointLight; // Using window to match original style of undeclared global
-57|            scene.add(pointLight);
-58|
-59|            // Floor
-60|            const geometry = new THREE.PlaneGeometry(200, 200, 50, 50);
-61|            const material = new THREE.MeshStandardMaterial({ 
-62|                color: 0x111111, 
-63|                wireframe: true,
-64|                emissive: 0x111111
-65|            });
-66|            grid = new THREE.Mesh(geometry, material);
-67|            grid.rotation.x = -Math.PI / 2;
-68|            scene.add(grid);
-69|
-70|            // Boundary Ring
-71|            const ringGeo = new THREE.TorusGeometry(90, 0.5, 16, 100);
-72|            const ringMat = new THREE.MeshBasicMaterial({ 
-73|                color: 0x00ffff, 
-74|                transparent: true, 
-75|                opacity: 0.15,
-76|                wireframe: true
-77|            });
-78|            boundaryRing = new THREE.Mesh(ringGeo, ringMat);
-79|            boundaryRing.rotation.x = Math.PI / 2;
-80|            scene.add(boundaryRing);
-81|
-82|            // Player
-83|            const pGeo = new THREE.SphereGeometry(0.8, 32, 32);
-84|            const pMat = new THREE.MeshStandardMaterial({ 
-85|                color: 0x00ffff, 
-86|                emissive: 0x00ffff, 
-87|                emissiveIntensity: 2 
-88|            });
-89|            player = new THREE.Mesh(pGeo, pMat);
-90|            player.position.y = 0.8;
-91|            scene.add(player);
-92|
-93|            // Enemies
-94|            for(let i=0; i<5; i++) spawnEnemy();
-95|
-96|            animate();
-97|        }
-98|
-99|        function spawnEnemy() {
-100|            const eGeo = new THREE.BoxGeometry(1, 1, 1);
-101|            const eMat = new THREE.MeshStandardMaterial({ 
-102|                color: 0xff0000, 
-103|                emissive: 0xff0000, 
-104|                emissiveIntensity: 2 
-105|            });
-106|            const enemy = new THREE.Mesh(eGeo, eMat);
-107|            
-108|            const angle = Math.random() * Math.PI * 2;
-109|            const dist = 40 + Math.random() * 20;
-110|            enemy.position.x = Math.cos(angle) * dist;
-111|            enemy.position.z = Math.sin(angle) * dist;
-112|            enemy.position.y = 0.5;
-113|            
-114|            enemies.push(enemy);
-115|            scene.add(enemy);
-116|        }
-117|
-118|        function resetGame() {
-119|            score = 0;
-120|            gameActive = true;
-121|            player.position.set(0, 0.8, 0);
-122|            msg.style.display = 'none';
-123|            enemies.forEach(e => scene.remove(e));
-124|            enemies = [];
-125|            for(let i=0; i<5; i++) spawnEnemy();
-126|        }
-127|
-128|        window.addEventListener('keydown', (e) => {
-129|            keys[e.code] = true;
-130|            if(e.code === 'KeyR' && !gameActive) resetGame();
-131|        });
-132|        window.addEventListener('keyup', (e) => keys[e.code] = false);
-133|
-134|        function animate(time) {
-135|            requestAnimationFrame(animate);
-136|            if (!gameActive) return;
-137|
-138|            const delta = time - lastTime;
-139|            lastTime = time;
-140|
-141|            // Score
-142|            score += delta * 0.016;
-143|            ui.innerText = `Score: ${Math.floor(score)}`;
-144|
-145|            // Player Movement
-146|            if (isBot) {
-147|                // Bot Logic
-148|                botTimer += delta;
-149|                if (botTimer > botTimerLimit) {
-150|                    botDirection.set(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
-151|                    botTimer = 0;
-152|                    botTimerLimit = 500 + Math.random() * 1000;
-153|                }
-154|
-155|                let moveDir = new THREE.Vector3(botDirection.x, 0, botDirection.z);
-156|
-157|                // Flee from nearest enemy
-158|                let minDist = Infinity;
-159|                let nearest = null;
-160|                enemies.forEach(enemy => {
-161|                    const d = player.position.distanceTo(enemy.position);
-162|                    if (d < minDist) {
-163|                        minDist = d;
-164|                        nearest = enemy;
-165|                    }
-166|                });
-167|
-168|                if (nearest && minDist < 20) {
-169|                    const flee = new THREE.Vector3().subVectors(player.position, nearest.position).normalize();
-170|                    moveDir.lerp(flee, 0.8);
-171|                }
-172|
-173|                // Edge Avoidance
-174|                const distFromCenter = player.position.length();
-175|                if (distFromCenter > 85) {
-176|                    const edgeFlee = new THREE.Vector3().subVectors(new THREE.Vector3(0, 0, 0), player.position).normalize();
-177|                    moveDir.lerp(edgeFlee, 0.5);
-178|                }
-179|
-180|                player.position.x += moveDir.x * PLAYER_SPEED;
-181|                player.position.z += moveDir.z * PLAYER_SPEED;
-182|            } else {
-183|                // Manual Movement
-184|                if (keys['KeyW']) player.position.z -= PLAYER_SPEED;
-185|                if (keys['KeyS']) player.position.z += PLAYER_SPEED;
-186|                if (keys['KeyA']) player.position.x -= PLAYER_SPEED;
-187|                if (keys['KeyD']) player.position.x += PLAYER_SPEED;
-188|            }
-189|
-190|            // Glow Pulse
-191|            player.material.emissiveIntensity = 2 + Math.sin(time * 0.005) * 1.5;
-192|
-193|            // Camera Follow (Low Angle)
-194|            camera.position.x = player.position.x;
-195|            camera.position.z = player.position.z + 15;
-196|            camera.position.y = 8;
-197|            camera.lookAt(player.position);
-198|
-199|            // Lights Follow
-200|            window.playerLight.position.set(player.position.x, player.position.y, player.position.z);
-201|
-202|            // Enemies logic
-203|            spawnTimer += delta;
-204|            if (spawnTimer > SPAWN_RATE) {
-205|                spawnEnemy();
-206|                spawnTimer = 0;
-207|            }
-208|
-209|            enemies.forEach(enemy => {
-210|                const dx = player.position.x - enemy.position.x;
-211|                const dz = player.position.z - enemy.position.z;
-212|                const dist = Math.sqrt(dx*dx + dz*dz);
-213|                
-214|                enemy.position.x += (dx / dist) * ENEMY_SPEED;
-215|                enemy.position.z += (dz / dist) * ENEMY_SPEED;
-216|
-217|                // Collision
-218|                if (dist < 1.5) {
-219|                    gameActive = false;
-220|                    msg.style.display = 'block';
-221|                }
-222|            });
-223|
-224|            renderer.render(scene, camera);
-225|        }
-226|
-227|        init();
-228|    </script>
-229|
+<div id="ui">Score: 0</div>
+<div id="msg">GAME OVER<br><span style="font-size: 20px;">Press R to Restart</span></div>
+<canvas id="gameCanvas" width="680" height="480"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ui = document.getElementById('ui');
+const msg = document.getElementById('msg');
+let scene, camera, renderer, player, grid, boundaryRing;
+let enemies = [];
+let score = 0;
+let gameActive = true;
+let keys = {};
+let lastTime = 0;
+let spawnTimer = 0;
+// Bot variables
+const isBot = new URLSearchParams(window.location.search).get('bot') === 'true';
+let botDirection = new THREE.Vector3(1, 0, 0);
+let botTimer = 0;
+let botTimerLimit = 1000;
+const PLAYER_SPEED = 0.15;
+const ENEMY_SPEED = 0.08;
+const SPAWN_RATE = 1000; // ms
+function init() {
+scene = new THREE.Scene();
+scene.background = new THREE.Color(0x020202);
+scene.fog = new THREE.Fog(0x020202, 10, 50);
+camera = new THREE.PerspectiveCamera(75, 680 / 480, 0.1, 1000);
+renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+renderer.setSize(680, 480);
+// Lights
+const ambient = new THREE.AmbientLight(0x404040, 2);
+scene.add(ambient);
+const pointLight = new THREE.PointLight(0x00ffff, 2, 20);
+window.playerLight = pointLight; // Using window to match original style of undeclared global
+scene.add(pointLight);
+// Floor
+const geometry = new THREE.PlaneGeometry(200, 200, 50, 50);
+const material = new THREE.MeshStandardMaterial({ 
+color: 0x111111, 
+wireframe: true,
+emissive: 0x111111
+});
+grid = new THREE.Mesh(geometry, material);
+grid.rotation.x = -Math.PI / 2;
+scene.add(grid);
+// Boundary Ring
+const ringGeo = new THREE.TorusGeometry(90, 0.5, 16, 100);
+const ringMat = new THREE.MeshBasicMaterial({ 
+color: 0x00ffff, 
+transparent: true, 
+opacity: 0.15,
+wireframe: true
+});
+boundaryRing = new THREE.Mesh(ringGeo, ringMat);
+boundaryRing.rotation.x = Math.PI / 2;
+scene.add(boundaryRing);
+// Player
+const pGeo = new THREE.SphereGeometry(0.8, 32, 32);
+const pMat = new THREE.MeshStandardMaterial({ 
+color: 0x00ffff, 
+emissive: 0x00ffff, 
+emissiveIntensity: 2 
+});
+player = new THREE.Mesh(pGeo, pMat);
+player.position.y = 0.8;
+scene.add(player);
+// Enemies
+for(let i=0; i<5; i++) spawnEnemy();
+animate();
+}
+function spawnEnemy() {
+const eGeo = new THREE.BoxGeometry(1, 1, 1);
+const eMat = new THREE.MeshStandardMaterial({ 
+color: 0xff0000, 
+emissive: 0xff0000, 
+emissiveIntensity: 2 
+});
+const enemy = new THREE.Mesh(eGeo, eMat);
+const angle = Math.random() * Math.PI * 2;
+const dist = 40 + Math.random() * 20;
+enemy.position.x = Math.cos(angle) * dist;
+enemy.position.z = Math.sin(angle) * dist;
+enemy.position.y = 0.5;
+enemies.push(enemy);
+scene.add(enemy);
+}
+function resetGame() {
+score = 0;
+gameActive = true;
+player.position.set(0, 0.8, 0);
+msg.style.display = 'none';
+enemies.forEach(e => scene.remove(e));
+enemies = [];
+for(let i=0; i<5; i++) spawnEnemy();
+}
+window.addEventListener('keydown', (e) => {
+keys[e.code] = true;
+if(e.code === 'KeyR' && !gameActive) resetGame();
+});
+window.addEventListener('keyup', (e) => keys[e.code] = false);
+function animate(time) {
+requestAnimationFrame(animate);
+if (!gameActive) return;
+const delta = time - lastTime;
+lastTime = time;
+// Score
+score += delta * 0.016;
+ui.innerText = `Score: ${Math.floor(score)}`;
+// Player Movement
+if (isBot) {
+// Bot Logic
+botTimer += delta;
+if (botTimer > botTimerLimit) {
+botDirection.set(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
+botTimer = 0;
+botTimerLimit = 500 + Math.random() * 1000;
+}
+let moveDir = new THREE.Vector3(botDirection.x, 0, botDirection.z);
+// Flee from nearest enemy
+let minDist = Infinity;
+let nearest = null;
+enemies.forEach(enemy => {
+const d = player.position.distanceTo(enemy.position);
+if (d < minDist) {
+minDist = d;
+nearest = enemy;
+}
+});
+if (nearest && minDist < 20) {
+const flee = new THREE.Vector3().subVectors(player.position, nearest.position).normalize();
+moveDir.lerp(flee, 0.8);
+}
+// Edge Avoidance
+const distFromCenter = player.position.length();
+if (distFromCenter > 85) {
+const edgeFlee = new THREE.Vector3().subVectors(new THREE.Vector3(0, 0, 0), player.position).normalize();
+moveDir.lerp(edgeFlee, 0.5);
+}
+player.position.x += moveDir.x * PLAYER_SPEED;
+player.position.z += moveDir.z * PLAYER_SPEED;
+} else {
+// Manual Movement
+if (keys['KeyW']) player.position.z -= PLAYER_SPEED;
+if (keys['KeyS']) player.position.z += PLAYER_SPEED;
+if (keys['KeyA']) player.position.x -= PLAYER_SPEED;
+if (keys['KeyD']) player.position.x += PLAYER_SPEED;
+}
+// Glow Pulse
+player.material.emissiveIntensity = 2 + Math.sin(time * 0.005) * 1.5;
+// Camera Follow (Low Angle)
+camera.position.x = player.position.x;
+camera.position.z = player.position.z + 15;
+camera.position.y = 8;
+camera.lookAt(player.position);
+// Lights Follow
+window.playerLight.position.set(player.position.x, player.position.y, player.position.z);
+// Enemies logic
+spawnTimer += delta;
+if (spawnTimer > SPAWN_RATE) {
+spawnEnemy();
+spawnTimer = 0;
+}
+enemies.forEach(enemy => {
+const dx = player.position.x - enemy.position.x;
+const dz = player.position.z - enemy.position.z;
+const dist = Math.sqrt(dx*dx + dz*dz);
+enemy.position.x += (dx / dist) * ENEMY_SPEED;
+enemy.position.z += (dz / dist) * ENEMY_SPEED;
+// Collision
+if (dist < 1.5) {
+gameActive = false;
+msg.style.display = 'block';
+}
+});
+renderer.render(scene, camera);
+}
+init();
+</script>
 </div>
   <details style="max-width: 1200px; width:100%; margin: 0.5em auto;">
     <summary style="color: #00d4ff; cursor: pointer; font-size: 0.82em; padding: 0.3em 0; user-select: none; text-align: center;">Game details &mdash; click to expand</summary>

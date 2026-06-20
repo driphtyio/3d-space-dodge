@@ -97,16 +97,16 @@ Every model's output is playable. Each variant page shows the exact build metric
 | [Llama 3.1 8B](/games/3d-space-dodge/llama-8b/) | Llama 3.1 8B (local) | 128s | $0 | ✅ | Best local option. Fastest local (128s). |
 | [Qwen 3.5 9B](/games/3d-space-dodge/qwen-9b/) | Qwen 3.5 9B (local) | 462s | $0 | ✅ | 40% of tokens spent on CoT reasoning. |
 | [Gemma-coder-fable](/games/3d-space-dodge/gemma-coder/) | Gemma-4-12b-coder-fable (local) | 181s | $0 | ✅ | Compact output (3.4 KB). CDN typo fixed. |
-| [Gemma-agentic-fable5](/games/3d-space-dodge/gemma-agentic-fable/) | Gemma-4-12b-agentic-fable5 (local) | 234s | $0 | ✅ | Compact (3.6 KB). V2 agentic variant. |
 | [GLM-4.6V-Flash](/games/3d-space-dodge/glm-4.6v/) | GLM-4.6V-Flash (local) | 354s | $0 | ✅ | Mid-range local performance. |
 | [Gemma-4-12b-qat](/games/3d-space-dodge/gemma-qat/) | Gemma-4-12b-qat (local) | 691s | $0 | ✅ | Slowest build (11.5 min). Working output. |
 | [Nemotron-3-Nano-4B](/games/3d-space-dodge/nemotron-4b/) | Nemotron-3-Nano-4B (local) | 209s | $0 | ✅ | Smallest output (4.8 KB). 4B params. |
+| [Gemma-agentic-fable5](/games/3d-space-dodge/gemma-agentic-fable/) | Gemma-4-12b-agentic-fable5 (local) | 234s | $0 | ❌ | Syntax error in output (unbalanced parens). Game doesn't render. |
 | [GPT-OSS-120B](/games/3d-space-dodge/gpt-oss-120b/) | GPT-OSS-120B | ~2s | $0 | ❌ | Prompt 2 ignored. No bot mode or features added. |
 | [GPT-OSS-20B](/games/3d-space-dodge/gpt-oss-20b/) | GPT-OSS-20B (local) | 38s* | $0 | ❌ | Prompt 2 failed — model evicted from memory. |
 
 *Partial builds — Prompt 2 did not complete.
 
-**Caveat:** These scores are based on verifiable build metrics (output valid HTML, bot mode detection, file size, token count, build time). Full runtime verification — checking each game's rendering, score counter, game-over loop, and console errors — requires live browser testing. Treat scores as indicators, not guaranteed quality grades.
+**Caveat:** Scores were verified with headless browser testing (Playwright/Chromium) — 16 of 18 games rendered a canvas and executed Three.js without syntax errors. Remaining failures: GPT-OSS-20B (partial build), Gemma-agentic-fable5 (syntax error in model output). Some WebGL-dependent rendering could not be verified in the headless environment — games flagged as working may have minor visual differences in a real browser.
 
 ### Key Takeaway
 
