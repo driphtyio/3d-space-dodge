@@ -258,22 +258,7 @@
       "score": 68,
       "notes": "DEGRADED: 6 const reassignment errors at runtime. WebGL renders (680x480). Game runs but errors degrade gameplay. 40% tokens on CoT reasoning."
     },
-    {
-      "model": "Llama 3.1 8B",
-      "model_id": "llama-3.1-8b",
-      "provider": "Local — Apple Mac Mini M4 (16GB)",
-      "game": "3d-space-dodge",
-      "game_title": "3D Space Dodge",
-      "game_url": "/games/3d-space-dodge/llama-8b/",
-      "build_time": 128,
-      "tokens_used": 2591,
-      "file_size": "8.0 KB",
-      "cost": 0,
-      "bugs": 1,
-      "score": 70,
-      "notes": "DEGRADED: WebGL fails in headless Chrome (SwiftShader) - verified working in real browser. Fastest local model (128s)."
-    },
-    {
+{
       "model": "Gemma-4-12b-qat",
       "model_id": "gemma-4-12b-qat",
       "provider": "Local — Apple Mac Mini M4 (16GB)",
