@@ -35,12 +35,12 @@ All scores are composite: output quality, build speed, token efficiency, bug cou
 | 9 | **poolside/laguna-m.1** | Free API | ~2s | 7,796 | 6.7 KB | $0 | **80** | PASS |
 | 10 | **Qwen 3.5 9B** | Local | 462s | 5,435 | 9.5 KB | $0 | **68** | DEGRADED |
 | 11 | **Gemma-4-12b-qat** | Local | 691s | 8,431 | 8.3 KB | $0 | **70** | PASS |
-| 12 | **Nemotron-3-Nano-4B** | Local | 209s | 5,211 | 4.8 KB | $0 | **65** | DEGRADED |
-| 13 | **GPT-OSS-120B** | Free API | ~2s | 3,292 | 6.7 KB | $0 | **60** | PASS |
+| 12 | **GPT-OSS-120B** | Free API | ~2s | 3,292 | 6.7 KB | $0 | **60** | PASS |
 | — | GPT-OSS-20B | Local | 38s | 1,235 | 4.2 KB | $0 | — | FAILED |
 | — | Llama 3.1 8B | Local | 128s | 2,591 | 8.0 KB | $0 | — | FAILED |
 | — | GLM-4.6V-Flash | Local | 354s | 6,063 | 8.8 KB | $0 | — | FAILED |
 | — | Gemma-4-12b-coder-fable | Local | 181s | 2,128 | 3.4 KB | $0 | — | FAILED |
+| — | Nemotron-3-Nano-4B | Local | 209s | 5,211 | 4.8 KB | $0 | — | FAILED |
 | — | Gemma-4-12b-agentic-fable5 | Local | 234s | 2,577 | 3.6 KB | $0 | — | FAILED |
 
 **Status key:** PASS = canvas renders with WebGL, zero JS errors. DEGRADED = canvas renders but has code bugs from the model (affects score). FAILED = no canvas or game never renders.
@@ -50,17 +50,17 @@ All scores are composite: output quality, build speed, token efficiency, bug cou
 | Degraded Variants | WebGL | Score UI | Errors | Verdict |
 |-------------------|-------|----------|--------|---------|
 | Qwen 3.5 9B | 680x480 | ✅ | 6 const reassignment | Game runs, errors degrade gameplay |
-| Nemotron-3-Nano-4B | 680x480 | ❌ | Undefined `now` | Scene renders, game logic breaks |
 
-**Promoted to FAILED (not loading in real browser):**
-- **Llama 3.1 8B** — canvas locked to 2D context before WebGL creation
-- **GLM-4.6V-Flash** — 2 extra closing parens break parser after scene init
-- **Gemma-4-12b-coder-fable** — model hit token limit, output truncated mid-function (`requestAnimation... `)
-- **poolside/laguna-m.1 promoted to PASS** after one-word fix: `MeshBasicMaterial` → `MeshStandardMaterial`
+**Promoted to FAILED (verified broken in real browser):**
+- Llama 3.1 8B — 2D context locks canvas before WebGL
+- GLM-4.6V-Flash — 2 extra closing parens break parser
+- Gemma-4-12b-coder-fable — output truncated at token limit
+- Nemotron-3-Nano-4B — `now` used at top level without declaration
+- poolside/laguna-m.1 fixed and promoted to PASS
 
 ### What the Numbers Tell Us
 
-**11 PASS, 2 DEGRADED, 5 FAILED** from 18 models tested. The 5 failures: WebGL context conflict (2D locks canvas), syntax errors (extra parens), truncated output (token limit), runtime errors (undefined variables), and memory eviction (Prompt 2 never ran).
+**11 PASS, 1 DEGRADED, 6 FAILED** from 18 models tested. The only DEGRADED variant — Qwen 3.5 9B — renders with WebGL and is playable but has 6 const reassignment errors at runtime. The 6 failures cover every category: memory eviction, WebGL context conflict, syntax errors, truncated output, and undefined variables.
 
 **The biggest differentiator is output correctness, not speed.** A model that finishes in 2 seconds with broken code loses to one that takes 30 seconds with clean output. Fast builds with syntax errors or runtime bugs still count as failures.
 
@@ -141,6 +141,7 @@ Every model's output is playable. Each variant page shows the exact build metric
 | — | GPT-OSS-20B (local) | 38s | $0 | **FAILED** | Model evicted from memory. Prompt 2 never ran. |
 | — | Llama 3.1 8B (local) | 128s | $0 | **FAILED** | Canvas locked to 2D before WebGL — getContext('2d') then WebGLRenderer fails. |
 | — | GLM-4.6V-Flash (local) | 354s | $0 | **FAILED** | 2 extra closing parens break parser after scene init. Game never runs. |
+| — | Nemotron-3-Nano-4B (local) | 209s | $0 | **FAILED** | `now` used at top level but never declared — only exists as animate(now) param. |
 | — | Gemma-4-12b-agentic-fable5 (local) | 234s | $0 | **FAILED** | Multiple syntax errors in model output. Game never renders. |
 
 *Partial builds — Prompt 2 did not complete.
@@ -149,4 +150,4 @@ Every model's output is playable. Each variant page shows the exact build metric
 
 ### Key Takeaway
 
-For a simple 3D game, **most models produce working code — 11 PASS, 2 DEGRADED, 5 FAILED** from 18 tested. 5 had code bugs from the model that prevent gameplay (WebGL context conflicts, syntax errors, truncated output, runtime errors, memory eviction). Speed and output size matter less than whether the code actually runs — a model that finishes in 2 seconds with broken JavaScript is worse than one that takes 30 seconds with clean output. The next test is harder: can these models build an 80s-era game with AI, tilemaps, and state machines?
+**11 PASS, 1 DEGRADED, 6 FAILED** from 18 models tested. The only DEGRADED variant still renders with WebGL and is playable despite runtime errors. The 6 failures cover the full range of model bugs: memory eviction, WebGL context conflicts, syntax errors, truncated output, and undefined variables. Speed and output size matter less than whether the code actually runs — a model that finishes in 2 seconds with broken JavaScript is worse than one that takes 30 seconds with clean output. The next test is harder: can these models build an 80s-era game with AI, tilemaps, and state machines?
