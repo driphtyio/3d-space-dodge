@@ -344,9 +344,9 @@
       "tokens_used": 7796,
       "file_size": "6.7 KB",
       "cost": 0,
-      "bugs": 1,
-      "score": 75,
-      "notes": "DEGRADED: Canvas renders but has setRGB runtime error. Free tier. Both prompts."
+      "bugs": 0,
+      "score": 80,
+      "notes": "PASS after fix: Model used MeshBasicMaterial (no emissive) instead of MeshStandardMaterial. One-word fix. Bot mode working."
     },
     {
       "model": "GPT-OSS-120B",

@@ -32,7 +32,7 @@ All scores are composite: output quality, build speed, token efficiency, bug cou
 | 6 | **Mistral Small** | Free API | 21s | 6,689 | 11.6 KB | $0 | **88** | PASS |
 | 7 | **owl-alpha** | Free API | 6s | 8,913 | 13.1 KB | $0 | **85** | PASS |
 | 8 | **Gemma-4-31B** | Free API | ~2s | 4,032 | 7.9 KB | $0 | **82** | PASS |
-| 9 | **poolside/laguna-m.1** | Free API | ~2s | 7,796 | 6.7 KB | $0 | **75** | DEGRADED |
+| 9 | **poolside/laguna-m.1** | Free API | ~2s | 7,796 | 6.7 KB | $0 | **80** | PASS |
 | 10 | **Llama 3.1 8B** | Local | 128s | 2,591 | 8.0 KB | $0 | **70** | DEGRADED |
 | 11 | **Qwen 3.5 9B** | Local | 462s | 5,435 | 9.5 KB | $0 | **68** | DEGRADED |
 | 12 | **Gemma-4-12b-qat** | Local | 691s | 8,431 | 8.3 KB | $0 | **70** | PASS |
@@ -51,9 +51,9 @@ All scores are composite: output quality, build speed, token efficiency, bug cou
 
 **Only 10 of 18 models shipped clean working games.** 5 produce WebGL-rendered output but have code bugs from the model (const reassignment, undefined variables, syntax errors in game logic). 2 failed completely (no canvas). 1 is a headless testing false positive (works in browser).
 
-**Model code bugs are part of the test.** We did not fix broken model outputs. If a model produces syntactically invalid JavaScript, undefined variables, or runtime errors — that's its score. DEGRADED status means the game loads visually but has issues that affect gameplay.
+**1 variant required a framework-level fix:** poolside/laguna-m.1 used `MeshBasicMaterial` (which has no `emissive` property) and then called `.emissive.setRGB()` — a Three.js API misuse. This was caught by the user seeing a blank screen. The fix was a one-word change to `MeshStandardMaterial`. This highlights a testing blind spot: WebGL context existing ≠ game loop running. The error fires in the animation loop, after the initial frame renders.
 
-**Cloud APIs still dominate — 8 of the top 10 are cloud.**
+**Model code bugs are part of the test.** We did not fix broken model outputs for other DEGRADED variants. If a model produces syntactically invalid JavaScript, undefined variables, or runtime errors — that's its score.
 
 **Speed gap is absurd.** Cloud models finish in 2-30 seconds. Local models take 2-11 minutes. The 550B Nemotron Ultra on OpenRouter finished in 2 seconds — faster than the 4B Nemotron Nano running locally (209s). That's a 100x speedup for using API vs local.
 
@@ -123,7 +123,7 @@ Every model's output is playable. Each variant page shows the exact build metric
 | [Mistral Small](/games/3d-space-dodge/mistral-small/) | Mistral Small | 21s | $0 | PASS | Clean output. |
 | [owl-alpha](/games/3d-space-dodge/owl-alpha/) | owl-alpha | 6s | $0 | PASS | Free tier. Clean. |
 | [Gemma-4-31B](/games/3d-space-dodge/gemma-31b/) | Gemma-4-31B | ~2s | $0 | PASS | Free tier. Clean. |
-| [poolside/laguna-m.1](/games/3d-space-dodge/poolside-laguna/) | poolside/laguna-m.1 | ~2s | $0 | DEGRADED | WebGL renders. Has setRGB runtime error in model code. |
+| [poolside/laguna-m.1](/games/3d-space-dodge/poolside-laguna/) | poolside/laguna-m.1 | ~2s | $0 | PASS | Fix applied: MeshBasicMaterial→MeshStandardMaterial (no emissive on Basic). |
 | [Llama 3.1 8B](/games/3d-space-dodge/llama-8b/) | Llama 3.1 8B (local) | 128s | $0 | DEGRADED | WebGL fails in headless — works in regular browser. |
 | [Qwen 3.5 9B](/games/3d-space-dodge/qwen-9b/) | Qwen 3.5 9B (local) | 462s | $0 | DEGRADED | WebGL renders. Const reassignment errors at runtime. |
 | [GLM-4.6V-Flash](/games/3d-space-dodge/glm-4.6v/) | GLM-4.6V-Flash (local) | 354s | $0 | DEGRADED | WebGL renders. Syntax error in model output. |
