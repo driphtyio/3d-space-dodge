@@ -135,8 +135,8 @@ Every model's output is playable. Each variant page shows the exact build metric
 | [owl-alpha](/games/3d-space-dodge/owl-alpha/) | owl-alpha | 6s | $0 | PASS | Free tier. Clean. |
 | [Gemma-4-31B](/games/3d-space-dodge/gemma-31b/) | Gemma-4-31B | ~2s | $0 | PASS | Free tier. Clean. |
 | [poolside/laguna-m.1](/games/3d-space-dodge/poolside-laguna/) | poolside/laguna-m.1 | ~2s | $0 | PASS | Fix applied: MeshBasicMaterial→MeshStandardMaterial. |
+| [Gemma-qat](/games/3d-space-dodge/gemma-qat/) | Gemma-4-12b-qat (local) | 691s | $0 | PASS | Slowest build (11.5 min). Clean WebGL output. |
 | [Qwen 3.5 9B](/games/3d-space-dodge/qwen-9b/) | Qwen 3.5 9B (local) | 462s | $0 | DEGRADED | WebGL renders. 6 const reassignment errors. |
-| [Nemotron-3-Nano-4B](/games/3d-space-dodge/nemotron-4b/) | Nemotron-3-Nano-4B (local) | 209s | $0 | DEGRADED | WebGL renders. Undefined variable in model output. |
 | [GPT-OSS-120B](/games/3d-space-dodge/gpt-oss-120b/) | GPT-OSS-120B | ~2s | $0 | PASS | Prompt 2 ignored — no bot mode. Zero JS errors otherwise. |
 | — | GPT-OSS-20B (local) | 38s | $0 | **FAILED** | Model evicted from memory. Prompt 2 never ran. |
 | — | Llama 3.1 8B (local) | 128s | $0 | **FAILED** | Canvas locked to 2D before WebGL — getContext('2d') then WebGLRenderer fails. |
