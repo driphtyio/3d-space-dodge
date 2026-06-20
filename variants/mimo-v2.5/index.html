@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Space Dodge — Xiaomi Mimo V2.5</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0b14; display: flex; flex-direction: column; align-items: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    #game-container { width: 680px; max-width: 100%; margin: 0 auto; position: relative; }
+    #game-container canvas { display: block; border-radius: 12px; max-width: 100%; }
+    .controls { color: #8892a0; font-size: 0.85em; margin-top: 0.8em; text-align: center; }
+    .controls kbd { background: #1e2035; padding: 2px 8px; border-radius: 4px; border: 1px solid #2a2d4a; color: #e6edf3; }
+  @media (min-width: 1800px) { .stats-table { max-width: 1100px !important; } }
+  @media (min-width: 2000px) { .stats-table { max-width: 1200px !important; } }
+  .stats-table { width: 100%; max-width: 800px !important; margin: 0.5em auto; border-collapse: collapse; font-size: 0.78em; }
+  .stats-table th, .stats-table td { padding: 0.3em 0.6em; border: 1px solid #1e2035; color: #c8d0e0; }
+  .stats-table th { background: #11131f; color: #00d4ff; font-weight: 600; text-align: left; }
+  .stats-table td:first-child { color: #8892a0; font-weight: 600; width: 30%; white-space: nowrap; }
+</style>
+</head>
+<body>
+<script>if(window.top!==window.self)document.write('<style>header{display:none!important}</style>');</script>
+<header style="position:sticky;top:0;z-index:100;width:100%;background:rgba(10,11,20,0.92);backdrop-filter:blur(10px);border-bottom:1px solid #181a2a;">
+  <div style="max-width:90%;width:100%;margin:0 auto;padding:0.7em 1.5em;display:flex;align-items:center;">
+    <a href="/" style="display:flex;align-items:center;gap:0.4em;text-decoration:none;font-size:1.2em;font-weight:700;color:#f0f6fc;">
+      <span style="color:#ff6b35;">&#9654;</span>
+      <span style="background:linear-gradient(135deg,#ff6b35,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">AI Gaming Dev</span>
+    </a>
+    <nav style="margin-left:auto;display:flex;gap:1em;">
+      <a href="/blog/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Blog</a>
+      <a href="/games/" style="color:#ff6b35;text-decoration:none;font-size:0.9em;font-weight:500;">Play</a>
+      <a href="/leaderboard/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Leaderboard</a>
+      <a href="/roadmap/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Roadmaps</a>
+    </nav>
+  </div>
+</header>
+  <div id="game-container">
+<div id="ui">SCORE: <span id="score">0</span></div>
+<div id="gameOver">GAME OVER<div class="sub">Press R to restart</div></div>
+<div id="instructions">WASD to move | Survive as long as you can</div>
+<div id="botIndicator">BOT MODE ACTIVE</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function() {
+  const WIDTH = 680, HEIGHT = 480;
+  const GRID_SIZE = 100;
+  const PLAYER_RADIUS = 0.6;
+  const ENEMY_SIZE = 0.5;
+  const ENEMY_SPEED_BASE = 1.2;
+  const PLAYER_SPEED = 8;
+  const SPAWN_INTERVAL_MAX = 1.2;
+  const SPAWN_INTERVAL_MIN = 0.3;
+  const ARENA_RADIUS = 65;
+
+  let scene, camera, renderer;
+  let player, playerGlow, playerLight;
+  let arenaRing;
+  let enemies = [];
+  let keys = {};
+  let score = 0;
+  let scoreTimer = 0;
+  let gameOver = false;
+  let gameTime = 0;
+  let spawnTimer = 0;
+  let clock;
+  let botMode = false;
+  let botWanderTimer = 0;
+  let botWanderDirection = { x: 0, z: 0 };
+
+  const scoreEl = document.getElementById('score');
+  const gameOverEl = document.getElementById('gameOver');
+  const botIndicator = document.getElementById('botIndicator');
+
+  // Check for bot mode in URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  botMode = urlParams.get('bot') === 'true';
+
+  function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050510);
+    scene.fog = new THREE.FogExp2(0x050510, 0.008);
+
+    camera = new THREE.PerspectiveCamera(50, WIDTH / HEIGHT, 0.1, 300);
+    camera.position.set(0, 12, 18);
+    camera.lookAt(0, 0, 0);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(WIDTH, HEIGHT);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    const ambient = new THREE.AmbientLight(0x111122, 0.5);
+    scene.add(ambient);
+
+    const dirLight = new THREE.DirectionalLight(0x222244, 0.3);
+    dirLight.position.set(10, 20, 10);
+    scene.add(dirLight);
+
+    createGrid();
+    createPlayer();
+    createArenaRing();
+
+    if (botMode) {
+      botIndicator.style.display = 'block';
+      document.getElementById('instructions').innerHTML = 'BOT MODE | WASD to override';
+    }
+
+    clock = new THREE.Clock();
+
+    document.addEventListener('keydown', function(e) {
+      keys[e.key.toLowerCase()] = true;
+      if (e.key.toLowerCase() === 'r' && gameOver) restart();
+    });
+    document.addEventListener('keyup', function(e) {
+      keys[e.key.toLowerCase()] = false;
+    });
+  }
+
+  function createGrid() {
+    const gridGeom = new THREE.PlaneGeometry(GRID_SIZE * 2, GRID_SIZE * 2, GRID_SIZE * 2, GRID_SIZE * 2);
+    const gridMat = new THREE.MeshStandardMaterial({
+      color: 0x0a0a1a,
+      wireframe: true,
+      emissive: 0x0a0a2a,
+      emissiveIntensity: 1.0,
+      transparent: true,
+      opacity: 0.4
+    });
+    const grid = new THREE.Mesh(gridGeom, gridMat);
+    grid.rotation.x = -Math.PI / 2;
+    grid.position.y = -0.01;
+    scene.add(grid);
+
+    const planeGeom = new THREE.PlaneGeometry(GRID_SIZE * 2, GRID_SIZE * 2);
+    const planeMat = new THREE.MeshStandardMaterial({
+      color: 0x05050f,
+      roughness: 0.9,
+      metalness: 0.1,
+    });
+    const plane = new THREE.Mesh(planeGeom, planeMat);
+    plane.rotation.x = -Math.PI / 2;
+    plane.position.y = -0.05;
+    plane.receiveShadow = true;
+    scene.add(plane);
+  }
+
+  function createArenaRing() {
+    const torusGeom = new THREE.TorusGeometry(ARENA_RADIUS, 0.2, 8, 64);
+    const torusMat = new THREE.MeshStandardMaterial({
+      color: 0x001133,
+      emissive: 0x001133,
+      emissiveIntensity: 0.8,
+      transparent: true,
+      opacity: 0.6
+    });
+    arenaRing = new THREE.Mesh(torusGeom, torusMat);
+    arenaRing.rotation.x = Math.PI / 2;
+    arenaRing.position.y = 0.1;
+    scene.add(arenaRing);
+  }
+
+  function createPlayer() {
+    const geom = new THREE.SphereGeometry(PLAYER_RADIUS, 24, 24);
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0x0066ff,
+      emissive: 0x0088ff,
+      emissiveIntensity: 1.5,
+      roughness: 0.2,
+      metalness: 0.8,
+    });
+    player = new THREE.Mesh(geom, mat);
+    player.position.y = PLAYER_RADIUS;
+    player.castShadow = true;
+    scene.add(player);
+
+    const glowGeom = new THREE.SphereGeometry(PLAYER_RADIUS * 1.8, 16, 16);
+    const glowMat = new THREE.MeshBasicMaterial({
+      color: 0x0088ff,
+      transparent: true,
+      opacity: 0.12
+    });
+    playerGlow = new THREE.Mesh(glowGeom, glowMat);
+    player.add(playerGlow);
+
+    playerLight = new THREE.PointLight(0x0088ff, 2, 15, 2);
+    playerLight.position.y = 1;
+    player.add(playerLight);
+  }
+
+  function spawnEnemy() {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 40 + Math.random() * 20;
+    const x = Math.cos(angle) * dist;
+    const z = Math.sin(angle) * dist;
+
+    const size = ENEMY_SIZE + Math.random() * 0.3;
+    const geom = new THREE.BoxGeometry(size, size, size);
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xff1111,
+      emissive: 0xff2200,
+      emissiveIntensity: 1.2,
+      roughness: 0.3,
+      metalness: 0.5
+    });
+    const enemy = new THREE.Mesh(geom, mat);
+    enemy.position.set(x, size / 2, z);
+
+    const glowGeom = new THREE.BoxGeometry(size * 1.5, size * 1.5, size * 1.5);
+    const glowMat = new THREE.MeshBasicMaterial({
+      color: 0xff0000,
+      transparent: true,
+      opacity: 0.1
+    });
+    const glow = new THREE.Mesh(glowGeom, glowMat);
+    enemy.add(glow);
+
+    const light = new THREE.PointLight(0xff2200, 0.5, 5, 2);
+    enemy.add(light);
+
+    const speed = ENEMY_SPEED_BASE + gameTime * 0.04 + Math.random() * 0.5;
+    enemy.userData = { speed: speed, rotSpeed: (Math.random() - 0.5) * 3 };
+    scene.add(enemy);
+    enemies.push(enemy);
+  }
+
+  function checkCollision(obj1, obj2, r1, r2) {
+    const dx = obj1.position.x - obj2.position.x;
+    const dz = obj1.position.z - obj2.position.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    return dist < r1 + r2;
+  }
+
+  function restart() {
+    for (let i = enemies.length - 1; i >= 0; i--) {
+      scene.remove(enemies[i]);
+      if (enemies[i].geometry) enemies[i].geometry.dispose();
+      if (enemies[i].material) enemies[i].material.dispose();
+    }
+    enemies = [];
+    score = 0;
+    gameTime = 0;
+    scoreTimer = 0;
+    spawnTimer = 0;
+    gameOver = false;
+    gameOverEl.style.display = 'none';
+    player.position.set(0, PLAYER_RADIUS, 0);
+    scoreEl.textContent = '0';
+  }
+
+  function getBotMovement() {
+    // Find nearest enemy
+    let nearestEnemy = null;
+    let nearestDistance = Infinity;
+    
+    for (let enemy of enemies) {
+      const dx = enemy.position.x - player.position.x;
+      const dz = enemy.position.z - player.position.z;
+      const distance = Math.sqrt(dx * dx + dz * dz);
+      
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestEnemy = enemy;
+      }
+    }
+    
+    // If no enemies, wander randomly
+    if (!nearestEnemy) {
+      return randomWander();
+    }
+    
+    // If nearest enemy is within danger zone, flee
+    if (nearestDistance < 15) {
+      return fleeFromEnemy(nearestEnemy);
+    }
+    
+    // Otherwise, wander
+    return randomWander();
+  }
+
+  function fleeFromEnemy(enemy) {
+    // Calculate direction away from enemy
+    const dx = player.position.x - enemy.position.x;
+    const dz = player.position.z - enemy.position.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+    
+    if (distance > 0.1) {
+      return {
+        x: dx / distance,
+        z: dz / distance
+      };
+    }
+    
+    // Fallback: move in a random direction
+    return randomWander();
+  }
+
+  function randomWander() {
+    // Decrease wander timer
+    botWanderTimer -= 1/60; // Assuming 60fps
+    
+    if (botWanderTimer <= 0) {
+      // Set new random direction
+      const angle = Math.random() * Math.PI * 2;
+      botWanderDirection.x = Math.cos(angle);
+      botWanderDirection.z = Math.sin(angle);
+      botWanderTimer = 0.5 + Math.random() * 1.0; // 500-1500ms
+    }
+    
+    return botWanderDirection;
+  }
+
+  function avoidEdges(x, z) {
+    const distance = Math.sqrt(x * x + z * z);
+    if (distance > ARENA_RADIUS - 5) {
+      // Normalize and reverse direction
+      const factor = (ARENA_RADIUS - 5) / distance;
+      return {
+        x: -x * factor * 0.1,
+        z: -z * factor * 0.1
+      };
+    }
+    return { x: 0, z: 0 };
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+
+    if (gameOver) {
+      renderer.render(scene, camera);
+      return;
+    }
+
+    const delta = Math.min(clock.getDelta(), 0.05);
+    gameTime += delta;
+
+    let dx = 0, dz = 0;
+    
+    if (botMode) {
+      const botMovement = getBotMovement();
+      dx = botMovement.x;
+      dz = botMovement.z;
+      
+      // Apply edge avoidance
+      const edgeAvoidance = avoidEdges(player.position.x, player.position.z);
+      dx += edgeAvoidance.x;
+      dz += edgeAvoidance.z;
+    } else {
+      if (keys['w'] || keys['arrowup']) dz -= 1;
+      if (keys['s'] || keys['arrowdown']) dz += 1;
+      if (keys['a'] || keys['arrowleft']) dx -= 1;
+      if (keys['d'] || keys['arrowright']) dx += 1;
+    }
+
+    if (dx !== 0 || dz !== 0) {
+      const len = Math.sqrt(dx * dx + dz * dz);
+      dx /= len;
+      dz /= len;
+    }
+
+    player.position.x += dx * PLAYER_SPEED * delta;
+    player.position.z += dz * PLAYER_SPEED * delta;
+
+    // Clamp player to arena (using arena radius instead of grid size)
+    const distance = Math.sqrt(player.position.x * player.position.x + player.position.z * player.position.z);
+    if (distance > ARENA_RADIUS - 2) {
+      const factor = (ARENA_RADIUS - 2) / distance;
+      player.position.x *= factor;
+      player.position.z *= factor;
+    }
+
+    player.position.y = PLAYER_RADIUS + Math.sin(gameTime * 3) * 0.05;
+    player.rotation.y += delta * 0.5;
+
+    // Enhanced glow pulse
+    const pulse = 0.6 + Math.sin(gameTime * 3) * 0.6;
+    const sizePulse = 0.12 + Math.sin(gameTime * 4) * 0.08;
+    playerGlow.material.opacity = sizePulse;
+    playerGlow.scale.setScalar(1.8 + pulse * 0.3);
+    playerLight.intensity = 1.5 + pulse * 0.8;
+
+    // Dim arena ring pulse
+    if (arenaRing) {
+      arenaRing.material.opacity = 0.4 + Math.sin(gameTime * 2) * 0.1;
+    }
+
+    camera.position.x += (player.position.x - camera.position.x) * 3 * delta;
+    camera.position.z += (player.position.z + 18 - camera.position.z) * 3 * delta;
+    camera.position.y += (12 - camera.position.y) * 3 * delta;
+    camera.lookAt(player.position.x, 0, player.position.z);
+
+    scoreTimer += delta;
+    if (scoreTimer >= 1) {
+      scoreTimer -= 1;
+      score++;
+      scoreEl.textContent = score;
+    }
+
+    spawnTimer -= delta;
+    const spawnInterval = Math.max(SPAWN_INTERVAL_MIN, SPAWN_INTERVAL_MAX - gameTime * 0.015);
+    if (spawnTimer <= 0) {
+      spawnTimer = spawnInterval;
+      spawnEnemy();
+    }
+
+    for (let i = enemies.length - 1; i >= 0; i--) {
+      const e = enemies[i];
+      const eSpeed = e.userData.speed;
+
+      const toPlayerX = player.position.x - e.position.x;
+      const toPlayerZ = player.position.z - e.position.z;
+      const dist = Math.sqrt(toPlayerX * toPlayerX + toPlayerZ * toPlayerZ);
+
+      if (dist > 0.1) {
+        e.position.x += (toPlayerX / dist) * eSpeed * delta;
+        e.position.z += (toPlayerZ / dist) * eSpeed * delta;
+      }
+
+      // Clamp enemies to arena
+      const enemyDist = Math.sqrt(e.position.x * e.position.x + e.position.z * e.position.z);
+      if (enemyDist > ARENA_RADIUS) {
+        const factor = ARENA_RADIUS / enemyDist;
+        e.position.x *= factor;
+        e.position.z *= factor;
+      }
+
+      e.rotation.x += e.userData.rotSpeed * delta;
+      e.rotation.y += e.userData.rotSpeed * delta;
+
+      const eh = ENEMY_SIZE + 0.3;
+      e.position.y = eh / 2 + Math.sin(gameTime * 5 + i) * 0.1;
+
+      if (checkCollision(player, e, PLAYER_RADIUS * 0.9, eh * 0.5)) {
+        gameOver = true;
+        gameOverEl.style.display = 'block';
+        break;
+      }
+
+      if (dist > 80) {
+        scene.remove(e);
+        if (e.geometry) e.geometry.dispose();
+        if (e.material) e.material.dispose();
+        enemies.splice(i, 1);
+      }
+    }
+
+    renderer.render(scene, camera);
+  }
+
+  init();
+  animate();
+})();
+</script>
+  </div>
+  <details style="max-width: 1200px; width:100%; margin: 0.5em auto;">
+    <summary style="color: #00d4ff; cursor: pointer; font-size: 0.82em; padding: 0.3em 0; user-select: none; text-align: center;">Game details &mdash; click to expand</summary>
+    <div style="text-align:center;color:#8892a0;font-size:0.85em;">Move with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> &middot; Press <kbd>R</kbd> to restart &middot; <a href="?bot=true" style="color:#00d4ff;">Bot mode</a></div>
+    <em style="display:block;text-align:center;color:#667;font-size:0.7em;">Built by Xiaomi Mimo V2.5</em>
+  <table class="stats-table">
+    <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>Game Title</td><td>3D Space Dodge — Xiaomi Mimo V2.5</td></tr>
+    <tr><td>Model</td><td>Xiaomi Mimo V2.5</td></tr>
+    <tr><td>Provider</td><td>OpenRouter</td></tr>
+    <tr><td>Model ID</td><td style="font-family:monospace;font-size:0.85em;color:#8892a0;">xiaomi/mimo-v2.5</td></tr>
+    <tr><td>Temperature</td><td>0.4</td></tr>
+    <tr><td>Max Tokens</td><td>8,192</td></tr>
+    <tr><td>Tokens Used</td><td>7,970</td></tr>
+    <tr><td>Build Time</td><td>~2s (2 prompts)</td></tr>
+    <tr><td>File Size</td><td>13.3 KB</td></tr>
+    <tr><td>Cost</td><td>$0.005</td></tr>
+    <tr><td>Notes</td><td style="color:#ff6b35;">Both prompts. Bot mode working. 13.3 KB output. Competitive performance.</td></tr>
+    <tr><td>Source</td><td><a href="https://github.com/driphtyio/3d-space-dodge" style="color:#00d4ff;">GitHub</a></td></tr>
+  </table>
+  </details>
+  <script src="/play-counter.js" data-game="3d-space-dodge-mimo-v2.5"></script>
+</body>
+</html>

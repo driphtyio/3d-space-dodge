@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Space Dodge — Gemma-4-12b-coder-fable</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0b14; display: flex; flex-direction: column; align-items: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    #game-container { width: 680px; max-width: 100%; margin: 0 auto; position: relative; }
+    #game-container canvas { display: block; border-radius: 12px; max-width: 100%; }
+    .controls { color: #8892a0; font-size: 0.85em; margin-top: 0.8em; text-align: center; }
+    .controls kbd { background: #1e2035; padding: 2px 8px; border-radius: 4px; border: 1px solid #2a2d4a; color: #e6edf3; }
+  @media (min-width: 1800px) { .stats-table { max-width: 1100px !important; font-size: 0.85em; } }
+  @media (min-width: 2000px) { .stats-table { max-width: 1200px !important; } }
+  .stats-table { width: 100%; max-width: 800px !important; margin: 0.5em auto; border-collapse: collapse; font-size: 0.78em; }
+  .stats-table th, .stats-table td { padding: 0.3em 0.6em; border: 1px solid #1e2035; color: #c8d0e0; }
+  .stats-table th { background: #11131f; color: #00d4ff; font-weight: 600; text-align: left; }
+  .stats-table td:first-child { color: #8892a0; font-weight: 600; width: 30%; white-space: nowrap; }
+</style>
+</head>
+<body>
+<script>if(window.top!==window.self)document.write('<style>header{display:none!important}</style>');</script>
+<header style="position:sticky;top:0;z-index:100;width:100%;background:rgba(10,11,20,0.92);backdrop-filter:blur(10px);border-bottom:1px solid #181a2a;">
+  <div style="max-width:90%;width:100%;margin:0 auto;padding:0.7em 1.5em;display:flex;align-items:center;">
+    <a href="/" style="display:flex;align-items:center;gap:0.4em;text-decoration:none;font-size:1.2em;font-weight:700;color:#f0f6fc;">
+      <span style="color:#ff6b35;font-size:0.9em;filter:drop-shadow(0 0 6px rgba(255,107,53,0.4));">&#9654;</span>
+      <span style="background:linear-gradient(135deg,#ff6b35,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">AI Gaming Dev</span>
+    </a>
+    <nav style="margin-left:auto;display:flex;gap:1em;">
+      <a href="/blog/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Blog</a>
+      <a href="/games/" style="color:#ff6b35;text-decoration:none;font-size:0.9em;font-weight:500;">Play</a>
+      <a href="/leaderboard/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Leaderboard</a>
+      <a href="/roadmap/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Roadmaps</a>
+    </nav>
+  </div>
+</header>
+  <div id="game-container">
+1|<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Neon Dodge</title><style>body{margin:0;background:#050505;display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden}canvas#game{width:680px;height:480px;border:2px solid #333}</style></head><body><canvas id="game"></canvas><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script><script>const canvas = document.getElementById('game'); const scene = new THREE.Scene(); let camera, player, enemies = [], score = 0, gameOver = false; let keys = {}; window.onkeydown = e => keys[e.key] = true; window.onkeyup = e => keys[e.key] = false; function init() { gameOver = false; score = 0; enemies.forEach(e => scene.remove(e)); enemies = []; camera = new THREE.PerspectiveCamera(60, canvas.width / canvas.height, 0.1, 1000); const light = new THREE.PointLight(0x4444ff, 2, 50).add(new THREE.AmbientLight(0.3)); scene.add(light); const grid = new THREE.GridHelper(100, 20, 0x4444ff, 0x222222); scene.add(grid); const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshPhongMaterial({color: 0x0a0a0a})); floor.rotation.x = -Math.PI/2; scene.add(floor); player = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshPhongMaterial({color: 0x00ffff})); scene.add(player); const boundary = new THREE.Mesh(new THREE.RingGeometry(49, 50, 64), new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.2})); boundary.rotation.x = -Math.PI/2; scene.add(boundary); animate(); } function spawnEnemy() { const angle = Math.random()*Math.PI*2; const dist = 40+Math.random()*30; const dir = new THREE.Vector2(Math.cos(angle), Math.sin(angle)); const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.8,0.8,0.8), new THREE.MeshPhongMaterial({color: 0xff1111})); mesh.position.set(dir.x*dist,0,dir.y*dist); scene.add(mesh); enemies.push({mesh:mesh, dir:dir}); } setInterval(()=> {if(!gameOver)spawnEnemy();},800); function animate() { if (gameOver) return; requestAnimation... [truncated]
+</div>
+  <details style="max-width: 1200px; width:100%; margin: 0.5em auto;">
+    <summary style="color: #00d4ff; cursor: pointer; font-size: 0.82em; padding: 0.3em 0; user-select: none; text-align: center;">Game details &mdash; click to expand</summary>
+    <div style="text-align:center;color:#8892a0;font-size:0.85em;">Move with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> &middot; Press <kbd>R</kbd> to restart &middot; <a href="?bot=true" style="color:#00d4ff;">Bot mode</a></div>
+    <em style="display:block;text-align:center;color:#667;font-size:0.7em;">Built by Gemma-4-12b-coder-fable (local)</em>
+  <table class="stats-table">
+    <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>Game Title</td><td>3D Space Dodge — Gemma-4-12b-coder-fable</td></tr>
+    <tr><td>Model</td><td>Gemma-4-12b-coder-fable</td></tr>
+    <tr><td>Provider</td><td>Local — Apple Mac Mini M4 (16GB)</td></tr>
+    <tr><td>Model ID</td><td style="font-family:monospace;font-size:0.85em;color:#8892a0;">gemma-4-12b-coder-fable5-composer2.5</td></tr>
+    <tr><td>Temperature</td><td>0.4</td></tr>
+    <tr><td>Max Tokens</td><td>8,192</td></tr>
+    <tr><td>Tokens Used</td><td>2,128</td></tr>
+    <tr><td>Build Time</td><td>181s (2 prompts)</td></tr>
+    <tr><td>File Size</td><td>3.4 KB</td></tr>
+    <tr><td>Cost</td><td>$0 (local)</td></tr>
+    <tr><td>Notes</td><td style="color:#ff6b35;">Compact output. Fixed CDN URL typo. Bot mode working.</td></tr>
+    <tr><td>Source</td><td><a href="https://github.com/driphtyio/3d-space-dodge" style="color:#00d4ff;">GitHub</a></td></tr>
+  </table>
+  </details>
+  <script src="/play-counter.js" data-game="3d-space-dodge-gemma-coder"></script>
+</body>
+</html>

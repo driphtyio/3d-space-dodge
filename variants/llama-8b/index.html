@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Space Dodge — Llama 3.1 8B</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0b14; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+    #game-container { width: 680px; max-width: 100%; margin: 0 auto; position: relative; }
+    #game-container canvas { display: block; border-radius: 12px; max-width: 100%; }
+  @media (min-width: 1800px) { .stats-table { max-width: 1100px !important; } }
+  @media (min-width: 2000px) { .stats-table { max-width: 1200px !important; } }
+  .stats-table { width: 100%; max-width: 800px !important; margin: 0.5em auto; border-collapse: collapse; font-size: 0.78em; }
+  .stats-table th, .stats-table td { padding: 0.3em 0.6em; border: 1px solid #1e2035; color: #c8d0e0; }
+  .stats-table th { background: #11131f; color: #00d4ff; font-weight: 600; text-align: left; }
+  .stats-table td:first-child { color: #8892a0; font-weight: 600; width: 30%; white-space: nowrap; }
+  .controls { color: #8892a0; font-size: 0.85em; margin-top: 0.8em; text-align: center; }
+  .controls kbd { background: #1e2035; padding: 2px 8px; border-radius: 4px; border: 1px solid #2a2d4a; color: #e6edf3; }
+</style>
+</head>
+<body>
+<script>if(window.top!==window.self)document.write('<style>header{display:none!important}</style>');</script>
+<header style="position:sticky;top:0;z-index:100;width:100%;background:rgba(10,11,20,0.92);backdrop-filter:blur(10px);border-bottom:1px solid #181a2a;">
+  <div style="max-width:90%;width:100%;margin:0 auto;padding:0.7em 1.5em;display:flex;align-items:center;">
+    <a href="/" style="display:flex;align-items:center;gap:0.4em;text-decoration:none;font-size:1.2em;font-weight:700;color:#f0f6fc;">
+      <span style="color:#ff6b35;">&#9654;</span>
+      <span style="background:linear-gradient(135deg,#ff6b35,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">AI Gaming Dev</span>
+    </a>
+    <nav style="margin-left:auto;display:flex;gap:1em;">
+      <a href="/blog/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Blog</a>
+      <a href="/games/" style="color:#ff6b35;text-decoration:none;font-size:0.9em;font-weight:500;">Play</a>
+      <a href="/leaderboard/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Leaderboard</a>
+      <a href="/roadmap/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Roadmaps</a>
+    </nav>
+  </div>
+</header>
+  <div id="game-container">
+21|    <canvas id="canvas"></canvas>
+22|    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+23|    <script>
+24|        const canvas = document.getElementById('canvas');
+25|        const ctx = canvas.getContext('2d');
+26|
+27|        let score = 0;
+28|        let gameOver = false;
+29|
+30|        const renderer = new THREE.WebGLRenderer({
+31|            canvas: canvas,
+32|            antialias: true
+33|        });
+34|        renderer.setSize(680, 480);
+35|
+36|        const scene = new THREE.Scene();
+37|        const camera = new THREE.PerspectiveCamera(75, 680 / 480, 0.1, 1000);
+38|
+39|        const player = new THREE.Mesh(
+40|            new THREE.SphereGeometry(10, 32, 32),
+41|            new THREE.MeshBasicMaterial({
+42|                color: 0x00ff00,
+43|                emissive: 0xffffff,
+44|                transparent: true
+45|            })
+46|        );
+47|        player.position.set(350, 230);
+48|
+49|        const grid = new THREE.GridHelper(700, 500);
+50|        scene.add(grid);
+51|
+52|        let enemies = [];
+53|
+54|        function updateScore() {
+55|            ctx.font = "24px Arial";
+56|            ctx.fillStyle = "#fff";
+57|            ctx.textAlign = "left";
+58|            ctx.textBaseline = "top";
+59|            ctx.clearRect(0, 0, 680, 24);
+60|            ctx.fillText(`Score: ${score}`, 10, 0);
+61|        }
+62|
+63|        function addEnemy() {
+64|            const enemy = new THREE.Mesh(
+65|                new THREE.BoxGeometry(10, 10, 10),
+66|                new THREE.MeshBasicMaterial({
+67|                    color: 0xff0000,
+68|                    emissive: 0xffffff
+69|                })
+70|            );
+71|            enemy.position.set(Math.random() * -700, Math.random() * 500, Math.random() * 1000);
+72|            enemy.velocity = new THREE.Vector3(
+73|                (player.position.x - enemy.position.x) / 100,
+74|                (player.position.y - enemy.position.y) / 100,
+75|                (player.position.z - enemy.position.z) / 100
+76|            );
+77|            enemies.push(enemy);
+78|            scene.add(enemy);
+79|        }
+80|
+81|        function updateEnemies() {
+82|            for (let i = 0; i < enemies.length; i++) {
+83|                const enemy = enemies[i];
+84|                enemy.position.add(enemy.velocity);
+85|                if (enemy.position.distanceTo(player.position) < 10) {
+86|                    gameOver = true;
+87|                    return;
+88|                }
+89|            }
+90|        }
+91|
+92|        function animate() {
+93|            requestAnimationFrame(animate);
+94|            if (!gameOver) {
+95|                updateScore();
+96|                for (let i = 0; i < enemies.length; i++) {
+97|                    const enemy = enemies[i];
+98|                    if (enemy.position.distanceTo(player.position) < 10) {
+99|                        gameOver = true;
+100|                        return;
+101|                    }
+102|                }
+103|                updateEnemies();
+104|                for (let i = 0; i < enemies.length; i++) {
+105|                    const enemy = enemies[i];
+106|                    if (enemy.position.distanceTo(player.position) > 1000) {
+107|                        const index = enemies.indexOf(enemy);
+108|                        if (index!== -1) {
+109|                            enemies.splice(index, 1);
+110|                            scene.remove(enemy);
+111|                        }
+112|                    }
+113|                }
+114|
+115|                const playerPos = {
+116|                    x: player.position.x,
+117|                    y: player.position.y
+118|                }
+119|                camera.position.set(playerPos.x, playerPos.y - 50, 0);
+120|                camera.lookAt(player.position);
+121|
+122|                // Glow pulse
+123|                const glowMat = player.material;
+124|                if (glowMat.emissiveIntensity < 0.5) {
+125|                    glowMat.emissiveIntensity += 0.01;
+126|                } else {
+127|                    glowMat.emissiveIntensity = 0;
+128|                }
+129|
+130|                // Boundary ring
+131|                const boundaryRing = new THREE.Mesh(
+132|                    new THREE.RingGeometry(690, 700, 32),
+133|                    new THREE.MeshBasicMaterial({
+134|                        color: 0xffffff,
+135|                        transparent: true,
+136|                        opacity: 0.2
+137|                    })
+138|                );
+139|                boundaryRing.position.set(350, 230);
+140|                scene.add(boundaryRing);
+141|
+142|                renderer.render(scene, camera);
+143|            }
+144|        }
+145|
+146|        function handleInput(event) {
+147|            switch (event.key) {
+148|                case 'w':
+149|                    player.position.y -= 10;
+150|                    break;
+151|                case 's':
+152|                    player.position.y += 10;
+153|                    break;
+154|                case 'a':
+155|                    player.position.x -= 10;
+156|                    break;
+157|                case 'd':
+158|                    player.position.x += 10;
+159|                    break;
+160|                case 'r':
+161|                    if (gameOver) {
+162|                        gameOver = false;
+163|                        score = 0;
+164|                        scene.remove(player);
+165|                        enemies.forEach(enemy => {
+166|                            scene.remove(enemy);
+167|                        });
+168|                        enemies = [];
+169|                        player.position.set(350, 230);
+170|                        addEnemy();
+171|                    }
+172|            }
+173|        }
+174|
+175|        document.addEventListener('keydown', handleInput);
+176|
+177|        // Bot mode
+178|        const botMode = new URLSearchParams(window.location.search).get('bot') === 'true';
+179|        if (botMode) {
+180|            function botUpdate() {
+181|                const nearestEnemy = enemies.reduce((nearest, current) => {
+182|                    if (current.position.distanceTo(player.position) < nearest.position.distanceTo(player.position)) {
+183|                        return current;
+184|                    }
+185|                    return nearest;
+186|                }, enemies[0]);
+187|
+188|                const fleeDirection = new THREE.Vector3(
+189|                    (player.position.x - nearestEnemy.position.x) / 100,
+190|                    (player.position.y - nearestEnemy.position.y) / 100,
+191|                    (player.position.z - nearestEnemy.position.z) / 100
+192|                );
+193|
+194|                player.position.add(fleeDirection);
+195|
+196|                // Random wander direction changes every 500-1500ms
+197|                const wanderTime = Math.random() * (1500 - 500) + 500;
+198|                setTimeout(() => {
+199|                    const wanderDirection = new THREE.Vector3(
+200|                        Math.random() * 2 - 1,
+201|                        Math.random() * 2 - 1,
+202|                        Math.random() * 2 - 1
+203|                    );
+204|                    player.position.add(wanderDirection);
+205|                    botUpdate();
+206|                }, wanderTime);
+207|
+208|                // Edge avoidance
+209|                if (player.position.x < -690 || player.position.x > 690) {
+210|                    const edgeDirection = new THREE.Vector3(
+211|                        (player.position.x < -690? 1 : -1) * 10,
+212|                        0,
+213|                        0
+214|                    );
+215|                    player.position.add(edgeDirection);
+216|                }
+217|                if (player.position.y < -490 || player.position.y > 490) {
+218|                    const edgeDirection = new THREE.Vector3(
+219|                        0,
+220|                        (player.position.y < -490? 1 : -1) * 10,
+221|                        0
+222|                    );
+223|                    player.position.add(edgeDirection);
+224|                }
+225|
+226|                botUpdate();
+227|            }
+228|            botUpdate();
+229|        } else {
+230|            function init() {
+231|                animate();
+232|                addEnemy();
+233|                setInterval(() => score++, 1000);
+234|            }
+235|            init();
+236|        }
+237|
+238|    </script>
+239|
+</div>
+  <details style="max-width: 1200px; width:100%; margin: 0.5em auto;">
+    <summary style="color: #00d4ff; cursor: pointer; font-size: 0.82em; padding: 0.3em 0; user-select: none; text-align: center;">Game details &mdash; click to expand</summary>
+    <div style="text-align:center;color:#8892a0;font-size:0.85em;">Move with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> &middot; Press <kbd>R</kbd> to restart &middot; <a href="?bot=true" style="color:#00d4ff;">Bot mode</a></div>
+    <em style="display:block;text-align:center;color:#667;font-size:0.7em;">Built by Llama 3.1 8B (local)</em>
+  <table class="stats-table">
+    <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>Game Title</td><td>3D Space Dodge — Llama 3.1 8B</td></tr>
+    <tr><td>Model</td><td>Llama 3.1 8B</td></tr>
+    <tr><td>Provider</td><td>Local — Apple Mac Mini M4 (16GB)</td></tr>
+    <tr><td>Model ID</td><td style="font-family:monospace;font-size:0.85em;color:#8892a0;">meta-llama-3.1-8b-instruct</td></tr>
+    <tr><td>Temperature</td><td>0.4</td></tr>
+    <tr><td>Max Tokens</td><td>8,192</td></tr>
+    <tr><td>Tokens Used</td><td>2,591</td></tr>
+    <tr><td>Build Time</td><td>128s (2 prompts)</td></tr>
+    <tr><td>File Size</td><td>8.0 KB</td></tr>
+    <tr><td>Cost</td><td>$0 (local)</td></tr>
+    <tr><td>Notes</td><td style="color:#ff6b35;">Both prompts successful. Bot mode working. Fastest local model.</td></tr>
+    <tr><td>Source</td><td><a href="https://github.com/driphtyio/3d-space-dodge" style="color:#00d4ff;">GitHub</a></td></tr>
+  </table>
+  </details>
+  <script src="/play-counter.js" data-game="3d-space-dodge-llama-8b"></script>
+</body>
+</html>

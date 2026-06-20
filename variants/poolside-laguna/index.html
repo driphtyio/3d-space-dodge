@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Space Dodge — poolside/laguna-m.1</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0b14; display: flex; flex-direction: column; align-items: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    #game-container { width: 680px; max-width: 100%; margin: 0 auto; position: relative; }
+    #game-container canvas { display: block; border-radius: 12px; max-width: 100%; }
+    .controls { color: #8892a0; font-size: 0.85em; margin-top: 0.8em; text-align: center; }
+    .controls kbd { background: #1e2035; padding: 2px 8px; border-radius: 4px; border: 1px solid #2a2d4a; color: #e6edf3; }
+  @media (min-width: 1800px) { .stats-table { max-width: 1100px !important; } }
+  @media (min-width: 2000px) { .stats-table { max-width: 1200px !important; } }
+  .stats-table { width: 100%; max-width: 800px !important; margin: 0.5em auto; border-collapse: collapse; font-size: 0.78em; }
+  .stats-table th, .stats-table td { padding: 0.3em 0.6em; border: 1px solid #1e2035; color: #c8d0e0; }
+  .stats-table th { background: #11131f; color: #00d4ff; font-weight: 600; text-align: left; }
+  .stats-table td:first-child { color: #8892a0; font-weight: 600; width: 30%; white-space: nowrap; }
+</style>
+</head>
+<body>
+<script>if(window.top!==window.self)document.write('<style>header{display:none!important}</style>');</script>
+<header style="position:sticky;top:0;z-index:100;width:100%;background:rgba(10,11,20,0.92);backdrop-filter:blur(10px);border-bottom:1px solid #181a2a;">
+  <div style="max-width:90%;width:100%;margin:0 auto;padding:0.7em 1.5em;display:flex;align-items:center;">
+    <a href="/" style="display:flex;align-items:center;gap:0.4em;text-decoration:none;font-size:1.2em;font-weight:700;color:#f0f6fc;">
+      <span style="color:#ff6b35;">&#9654;</span>
+      <span style="background:linear-gradient(135deg,#ff6b35,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">AI Gaming Dev</span>
+    </a>
+    <nav style="margin-left:auto;display:flex;gap:1em;">
+      <a href="/blog/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Blog</a>
+      <a href="/games/" style="color:#ff6b35;text-decoration:none;font-size:0.9em;font-weight:500;">Play</a>
+      <a href="/leaderboard/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Leaderboard</a>
+      <a href="/roadmap/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Roadmaps</a>
+    </nav>
+  </div>
+</header>
+  <div id="game-container">
+<div id="score">Score: 0</div>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, 680 / 480, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(680, 480);
+        document.body.appendChild(renderer.domElement);
+
+        const gridHelper = new THREE.GridHelper(20, 20, 0x00ffff, 0x00ffff);
+        scene.add(gridHelper);
+
+        // Arena boundary ring
+        const arenaGeometry = new THREE.RingGeometry(9.5, 10, 32);
+        const arenaMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x00ffff, 
+            side: THREE.DoubleSide, 
+            transparent: true, 
+            opacity: 0.2 
+        });
+        const arena = new THREE.Mesh(arenaGeometry, arenaMaterial);
+        arena.rotation.x = -Math.PI / 2;
+        scene.add(arena);
+
+        const playerGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+        const playerMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x00ffff, 
+            emissive: 0x00ffff 
+        });
+        const player = new THREE.Mesh(playerGeometry, playerMaterial);
+        player.position.set(0, 0.5, 0);
+        scene.add(player);
+
+        const enemies = [];
+        let score = 0;
+        let gameOver = false;
+        let animationId;
+        let time = 0;
+
+        // Bot mode variables
+        const urlParams = new URLSearchParams(window.location.search);
+        const isBot = urlParams.get('bot') === 'true';
+        let lastWanderTime = 0;
+        let wanderInterval = 500 + Math.random() * 1000;
+        let wanderDirection = new THREE.Vector3();
+
+        function spawnEnemy() {
+            const enemyGeometry = new THREE.BoxGeometry(1, 1, 1);
+            const enemyMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, emissive: 0xff0000 });
+            const enemy = new THREE.Mesh(enemyGeometry, enemyMaterial);
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 15;
+            enemy.position.x = Math.cos(angle) * distance;
+            enemy.position.z = Math.sin(angle) * distance;
+            enemy.position.y = 0.5;
+            scene.add(enemy);
+            enemies.push(enemy);
+        }
+
+        setInterval(spawnEnemy, 2000);
+
+        const keys = {};
+        document.addEventListener('keydown', (event) => {
+            keys[event.key.toLowerCase()] = true;
+            if (event.key.toLowerCase() === 'r' && gameOver) {
+                resetGame();
+            }
+        });
+        document.addEventListener('keyup', (event) => {
+            keys[event.key.toLowerCase()] = false;
+        });
+
+        function resetGame() {
+            gameOver = false;
+            score = 0;
+            player.position.set(0, 0.5, 0);
+            enemies.forEach(enemy => scene.remove(enemy));
+            enemies.length = 0;
+            document.getElementById('score').innerText = 'Score: 0';
+            animate();
+        }
+
+        function animate() {
+            if (gameOver) return;
+
+            time += 0.05;
+            const pulse = Math.sin(time) * 0.5 + 0.5;
+            playerMaterial.emissive.setRGB(0, pulse, pulse);
+
+            const moveSpeed = 0.1;
+            const direction = new THREE.Vector3();
+
+            if (isBot) {
+                // Find nearest enemy
+                let nearestEnemy = null;
+                let minDistance = Infinity;
+                enemies.forEach(enemy => {
+                    const distance = player.position.distanceTo(enemy.position);
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        nearestEnemy = enemy;
+                    }
+                });
+
+                // Calculate flee direction
+                let fleeDirection = new THREE.Vector3();
+                if (nearestEnemy) {
+                    fleeDirection.subVectors(player.position, nearestEnemy.position).normalize();
+                }
+
+                // Update wander direction
+                const currentTime = performance.now();
+                if (currentTime - lastWanderTime > wanderInterval) {
+                    wanderDirection.set(
+                        (Math.random() - 0.5) * 2,
+                        0,
+                        (Math.random() - 0.5) * 2
+                    ).normalize();
+                    lastWanderTime = currentTime;
+                    wanderInterval = 500 + Math.random() * 1000;
+                }
+
+                // Combine flee and wander directions
+                direction.addVectors(fleeDirection, wanderDirection).normalize();
+            } else {
+                // Player controls
+                if (keys.w) direction.z -= 1;
+                if (keys.s) direction.z += 1;
+                if (keys.a) direction.x -= 1;
+                if (keys.d) direction.x += 1;
+                direction.normalize();
+            }
+
+            player.position.x += direction.x * moveSpeed;
+            player.position.z += direction.z * moveSpeed;
+
+            // Edge avoidance
+            const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+            player.position.x = clamp(player.position.x, -10, 10);
+            player.position.z = clamp(player.position.z, -10, 10);
+
+            enemies.forEach(enemy => {
+                const dir = new THREE.Vector3().subVectors(player.position, enemy.position).normalize();
+                enemy.position.add(dir.multiplyScalar(0.05));
+            });
+
+            enemies.forEach((enemy, index) => {
+                const distance = player.position.distanceTo(enemy.position);
+                if (distance < 1) {
+                    gameOver = true;
+                    document.getElementById('score').innerText = 'Game Over! Score: ' + score;
+                    cancelAnimationFrame(animationId);
+                }
+            });
+
+            camera.position.x = player.position.x;
+            camera.position.y = 5;
+            camera.position.z = player.position.z + 10;
+            camera.lookAt(player.position);
+
+            renderer.render(scene, camera);
+            animationId = requestAnimationFrame(animate);
+        }
+
+        setInterval(() => {
+            if (!gameOver) score++;
+            document.getElementById('score').innerText = 'Score: ' + score;
+        }, 1000);
+
+        animate();
+    </script>
+  </div>
+  <details style="max-width: 1200px; width:100%; margin: 0.5em auto;">
+    <summary style="color: #00d4ff; cursor: pointer; font-size: 0.82em; padding: 0.3em 0; user-select: none; text-align: center;">Game details &mdash; click to expand</summary>
+    <div style="text-align:center;color:#8892a0;font-size:0.85em;">Move with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> &middot; Press <kbd>R</kbd> to restart &middot; <a href="?bot=true" style="color:#00d4ff;">Bot mode</a></div>
+    <em style="display:block;text-align:center;color:#667;font-size:0.7em;">Built by poolside/laguna-m.1 (OpenRouter free)</em>
+  <table class="stats-table">
+    <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>Game Title</td><td>3D Space Dodge — poolside/laguna-m.1</td></tr>
+    <tr><td>Model</td><td>poolside/laguna-m.1</td></tr>
+    <tr><td>Provider</td><td>OpenRouter (free tier)</td></tr>
+    <tr><td>Model ID</td><td style="font-family:monospace;font-size:0.85em;color:#8892a0;">poolside/laguna-m.1</td></tr>
+    <tr><td>Temperature</td><td>0.4</td></tr>
+    <tr><td>Max Tokens</td><td>8,192</td></tr>
+    <tr><td>Tokens Used</td><td>7,796</td></tr>
+    <tr><td>Build Time</td><td>~2s (2 prompts)</td></tr>
+    <tr><td>File Size</td><td>6.7 KB</td></tr>
+    <tr><td>Cost</td><td>$0 (free tier)</td></tr>
+    <tr><td>Notes</td><td style="color:#ff6b35;">Both prompts. Bot mode working. Compact output on free tier.</td></tr>
+    <tr><td>Source</td><td><a href="https://github.com/driphtyio/3d-space-dodge" style="color:#00d4ff;">GitHub</a></td></tr>
+  </table>
+  </details>
+  <script src="/play-counter.js" data-game="3d-space-dodge-poolside-laguna"></script>
+</body>
+</html>

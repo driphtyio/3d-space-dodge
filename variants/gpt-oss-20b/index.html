@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Space Dodge — GPT-OSS-20B</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<script>if(window.top!==window.self)document.write('<style>header{display:none!important}</style>');</script>
+<header style="position:sticky;top:0;z-index:100;width:100%;background:rgba(10,11,20,0.92);backdrop-filter:blur(10px);border-bottom:1px solid #181a2a;">
+  <div style="max-width:90%;width:100%;margin:0 auto;padding:0.7em 1.5em;display:flex;align-items:center;">
+    <a href="/" style="display:flex;align-items:center;gap:0.4em;text-decoration:none;font-size:1.2em;font-weight:700;color:#f0f6fc;">
+      <span style="color:#ff6b35;">&#9654;</span>
+      <span style="background:linear-gradient(135deg,#ff6b35,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">AI Gaming Dev</span>
+    </a>
+    <nav style="margin-left:auto;display:flex;gap:1em;">
+      <a href="/blog/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Blog</a>
+      <a href="/games/" style="color:#ff6b35;text-decoration:none;font-size:0.9em;font-weight:500;">Play</a>
+      <a href="/leaderboard/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Leaderboard</a>
+      <a href="/roadmap/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Roadmaps</a>
+    </nav>
+  </div>
+</header>
+  <div id="game-container">
+
+<div id="score">Score: 0</div>
+<div id="gameover">Game Over! Press R to Restart</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+<script>
+const canvasWidth=680,canvasHeight=480;
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x111);
+const camera=new THREE.PerspectiveCamera(60,canvasWidth/canvasHeight,0.1,1000);
+camera.position.set(0,-20,15);
+camera.lookAt(0,0,0);
+
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(canvasWidth,canvasHeight);
+document.body.appendChild(renderer.domElement);
+
+const grid=new THREE.GridHelper(200,100,0x444,0x222);
+scene.add(grid);
+
+const playerMat=new THREE.MeshStandardMaterial({color:0x00f,emissive:0x00f,emissiveIntensity:1});
+const player=new THREE.Mesh(new THREE.SphereGeometry(0.5,32,32),playerMat);
+scene.add(player);
+
+const light=new THREE.DirectionalLight(0xffffff,1);
+light.position.set(5,5,10);
+scene.add(light);
+
+const enemies=[];
+let enemySpawnTimer=0;
+const spawnInterval=2000;
+
+const keys={};
+document.addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);
+document.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+
+const scoreEl=document.getElementById('score');
+const gameOverEl=document.getElementById('gameover');
+let score=0,scoreTimer=0;
+let gameOver=false;
+
+function spawnEnemy(){
+  const side=Math.floor(Math.random()*4);
+  let pos=new THREE.Vector3();
+  const dist=100;
+  switch(side){
+    case0:pos.set(-dist,Math.random()*200-100,0);break;
+    case1:pos.set(dist,Math.random()*200-100,0);break;
+    case2:pos.set(Math.random()*200-100,-dist,0);break;
+    case3:pos.set(Math.random()*200-100,dist,0);break;
+  }
+  const mat=new THREE.MeshStandardMaterial({color:0xf00,emissive:0xf00,emissiveIntensity:1});
+  const cube=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),mat);
+  cube.position.copy(pos);
+  scene.add(cube);
+  enemies.push({mesh:cube,vel:new THREE.Vector3()});
+}
+
+function update(dt){
+  if(gameOver)return;
+  // Player movement
+  const speed=10*dt;
+  if(keys.w)player.position.y+=speed;
+  if(keys.s)player.position.y-=speed;
+  if(keys.a)player.position.x-=speed;
+  if(keys.d)player.position.x+=speed;
+
+  // Clamp player
+  const max=90;
+  if(player.position.x>max)player.position.x=max;
+  if(player.position.x<-max)player.position.x=-max;
+  if(player.position.y>max)player.position.y=max;
+  if(player.position.y<-max)player.position.y=-max;
+
+  // Enemy movement
+  enemies.forEach(e=>{
+    const dir=new THREE.Vector3().subVectors(player.position,e.mesh.position).normalize();
+    e.vel.copy(dir).multiplyScalar(5);
+    e.mesh.position.add(e.vel.clone().multiplyScalar(dt));
+    // Collision
+    if(e.mesh.position.distanceTo(player.position)<1){
+      gameOver=true;
+      gameOverEl.style.display='block';
+    }
+  });
+
+  // Spawn enemies
+  enemySpawnTimer+=dt*1000;
+  if(enemySpawnTimer>spawnInterval){
+    spawnEnemy();
+    enemySpawnTimer=0;
+  }
+
+  // Score
+  scoreTimer+=dt*1000;
+  if(scoreTimer>1000){
+    score++;
+    scoreEl.textContent='Score: '+score;
+    scoreTimer=0;
+  }
+
+  // Camera follow
+  camera.position.lerp(new THREE.Vector3(player.position.x,player.position.y-20,15),0.1);
+  camera.lookAt(player.position);
+
+  renderer.render(scene,camera);
+}
+
+let lastTime=performance.now();
+function animate(){
+  const now=performance.now();
+  const dt=(now-lastTime)/1000;
+  lastTime=now;
+  update(dt);
+  requestAnimationFrame(animate);
+}
+animate();
+
+document.addEventListener('keydown',e=>{
+  if(e.key.toLowerCase()==='r' && gameOver){
+    // Reset
+    enemies.forEach(e=>scene.remove(e.mesh));
+    enemies.length=0;
+    player.position.set(0,0,0);
+    score=0;scoreTimer=0;
+    gameOver=false;
+    gameOverEl.style.display='none';
+  }
+});
+</script>
+  </div>
+  <details style="max-width: 1200px; width:100%; margin: 0.5em auto;">
+    <summary style="color: #00d4ff; cursor: pointer; font-size: 0.82em; padding: 0.3em 0; user-select: none; text-align: center;">Game details &mdash; click to expand</summary>
+    <div style="text-align:center;color:#8892a0;font-size:0.85em;">Move with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> &middot; Press <kbd>R</kbd> to restart</div>
+    <em style="display:block;text-align:center;color:#667;font-size:0.7em;">Built by GPT-OSS-20B (local) — Prompt 1 only</em>
+  <table class="stats-table">
+    <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>Game Title</td><td>3D Space Dodge — GPT-OSS-20B</td></tr>
+    <tr><td>Model</td><td>openai/gpt-oss-20b</td></tr>
+    <tr><td>Provider</td><td>Local — Apple Mac Mini M4 (16GB)</td></tr>
+    <tr><td>Model ID</td><td style="font-family:monospace;font-size:0.85em;color:#8892a0;">openai/gpt-oss-20b</td></tr>
+    <tr><td>Temperature</td><td>0.4</td></tr>
+    <tr><td>Max Tokens</td><td>8,192</td></tr>
+    <tr><td>Tokens Used</td><td>1,235</td></tr>
+    <tr><td>Build Time</td><td>38s (Prompt 1 only)</td></tr>
+    <tr><td>File Size</td><td>4.2 KB</td></tr>
+    <tr><td>Cost</td><td>$0 (local)</td></tr>
+    <tr><td>Notes</td><td style="color:#ff6b35;">Prompt 1 succeeded. Prompt 2 failed — model evicted from memory (16GB limit). No bot mode.</td></tr>
+    <tr><td>Source</td><td><a href="https://github.com/driphtyio/3d-space-dodge" style="color:#00d4ff;">GitHub</a></td></tr>
+  </table>
+  </details>
+  <script src="/play-counter.js" data-game="3d-space-dodge-gpt-oss-20b"></script>
+
+
+
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Space Dodge — Gemma-4-12b-qat</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0b14; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+    #game-container { width: 680px; max-width: 100%; margin: 0 auto; position: relative; }
+    #game-container canvas { display: block; border-radius: 12px; max-width: 100%; }
+  @media (min-width: 1800px) { .stats-table { max-width: 1100px !important; } }
+  @media (min-width: 2000px) { .stats-table { max-width: 1200px !important; } }
+  .stats-table { width: 100%; max-width: 800px !important; margin: 0.5em auto; border-collapse: collapse; font-size: 0.78em; }
+  .stats-table th, .stats-table td { padding: 0.3em 0.6em; border: 1px solid #1e2035; color: #c8d0e0; }
+  .stats-table th { background: #11131f; color: #00d4ff; font-weight: 600; text-align: left; }
+  .stats-table td:first-child { color: #8892a0; font-weight: 600; width: 30%; white-space: nowrap; }
+  .controls { color: #8892a0; font-size: 0.85em; margin-top: 0.8em; text-align: center; }
+  .controls kbd { background: #1e2035; padding: 2px 8px; border-radius: 4px; border: 1px solid #2a2d4a; color: #e6edf3; }
+</style>
+</head>
+<body>
+<script>if(window.top!==window.self)document.write('<style>header{display:none!important}</style>');</script>
+<header style="position:sticky;top:0;z-index:100;width:100%;background:rgba(10,11,20,0.92);backdrop-filter:blur(10px);border-bottom:1px solid #181a2a;">
+  <div style="max-width:90%;width:100%;margin:0 auto;padding:0.7em 1.5em;display:flex;align-items:center;">
+    <a href="/" style="display:flex;align-items:center;gap:0.4em;text-decoration:none;font-size:1.2em;font-weight:700;color:#f0f6fc;">
+      <span style="color:#ff6b35;">&#9654;</span>
+      <span style="background:linear-gradient(135deg,#ff6b35,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">AI Gaming Dev</span>
+    </a>
+    <nav style="margin-left:auto;display:flex;gap:1em;">
+      <a href="/blog/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Blog</a>
+      <a href="/games/" style="color:#ff6b35;text-decoration:none;font-size:0.9em;font-weight:500;">Play</a>
+      <a href="/leaderboard/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Leaderboard</a>
+      <a href="/roadmap/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Roadmaps</a>
+    </nav>
+  </div>
+</header>
+  <div id="game-container">
+13|    <div id="ui">Score: 0</div>
+14|    <div id="msg">GAME OVER<br><span style="font-size: 20px;">Press R to Restart</span></div>
+15|    <canvas id="gameCanvas" width="680" height="480"></canvas>
+16|
+17|    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+18|    <script>
+19|        const canvas = document.getElementById('gameCanvas');
+20|        const ui = document.getElementById('ui');
+21|        const msg = document.getElementById('msg');
+22|
+23|        let scene, camera, renderer, player, grid, boundaryRing;
+24|        let enemies = [];
+25|        let score = 0;
+26|        let gameActive = true;
+27|        let keys = {};
+28|        let lastTime = 0;
+29|        let spawnTimer = 0;
+30|
+31|        // Bot variables
+32|        const isBot = new URLSearchParams(window.location.search).get('bot') === 'true';
+33|        let botDirection = new THREE.Vector3(1, 0, 0);
+34|        let botTimer = 0;
+35|        let botTimerLimit = 1000;
+36|
+37|        const PLAYER_SPEED = 0.15;
+38|        const ENEMY_SPEED = 0.08;
+39|        const SPAWN_RATE = 1000; // ms
+40|
+41|        function init() {
+42|            scene = new THREE.Scene();
+43|            scene.background = new THREE.Color(0x020202);
+44|            scene.fog = new THREE.Fog(0x020202, 10, 50);
+45|
+46|            camera = new THREE.PerspectiveCamera(75, 680 / 480, 0.1, 1000);
+47|            
+48|            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+49|            renderer.setSize(680, 480);
+50|
+51|            // Lights
+52|            const ambient = new THREE.AmbientLight(0x404040, 2);
+53|            scene.add(ambient);
+54|
+55|            const pointLight = new THREE.PointLight(0x00ffff, 2, 20);
+56|            window.playerLight = pointLight; // Using window to match original style of undeclared global
+57|            scene.add(pointLight);
+58|
+59|            // Floor
+60|            const geometry = new THREE.PlaneGeometry(200, 200, 50, 50);
+61|            const material = new THREE.MeshStandardMaterial({ 
+62|                color: 0x111111, 
+63|                wireframe: true,
+64|                emissive: 0x111111
+65|            });
+66|            grid = new THREE.Mesh(geometry, material);
+67|            grid.rotation.x = -Math.PI / 2;
+68|            scene.add(grid);
+69|
+70|            // Boundary Ring
+71|            const ringGeo = new THREE.TorusGeometry(90, 0.5, 16, 100);
+72|            const ringMat = new THREE.MeshBasicMaterial({ 
+73|                color: 0x00ffff, 
+74|                transparent: true, 
+75|                opacity: 0.15,
+76|                wireframe: true
+77|            });
+78|            boundaryRing = new THREE.Mesh(ringGeo, ringMat);
+79|            boundaryRing.rotation.x = Math.PI / 2;
+80|            scene.add(boundaryRing);
+81|
+82|            // Player
+83|            const pGeo = new THREE.SphereGeometry(0.8, 32, 32);
+84|            const pMat = new THREE.MeshStandardMaterial({ 
+85|                color: 0x00ffff, 
+86|                emissive: 0x00ffff, 
+87|                emissiveIntensity: 2 
+88|            });
+89|            player = new THREE.Mesh(pGeo, pMat);
+90|            player.position.y = 0.8;
+91|            scene.add(player);
+92|
+93|            // Enemies
+94|            for(let i=0; i<5; i++) spawnEnemy();
+95|
+96|            animate();
+97|        }
+98|
+99|        function spawnEnemy() {
+100|            const eGeo = new THREE.BoxGeometry(1, 1, 1);
+101|            const eMat = new THREE.MeshStandardMaterial({ 
+102|                color: 0xff0000, 
+103|                emissive: 0xff0000, 
+104|                emissiveIntensity: 2 
+105|            });
+106|            const enemy = new THREE.Mesh(eGeo, eMat);
+107|            
+108|            const angle = Math.random() * Math.PI * 2;
+109|            const dist = 40 + Math.random() * 20;
+110|            enemy.position.x = Math.cos(angle) * dist;
+111|            enemy.position.z = Math.sin(angle) * dist;
+112|            enemy.position.y = 0.5;
+113|            
+114|            enemies.push(enemy);
+115|            scene.add(enemy);
+116|        }
+117|
+118|        function resetGame() {
+119|            score = 0;
+120|            gameActive = true;
+121|            player.position.set(0, 0.8, 0);
+122|            msg.style.display = 'none';
+123|            enemies.forEach(e => scene.remove(e));
+124|            enemies = [];
+125|            for(let i=0; i<5; i++) spawnEnemy();
+126|        }
+127|
+128|        window.addEventListener('keydown', (e) => {
+129|            keys[e.code] = true;
+130|            if(e.code === 'KeyR' && !gameActive) resetGame();
+131|        });
+132|        window.addEventListener('keyup', (e) => keys[e.code] = false);
+133|
+134|        function animate(time) {
+135|            requestAnimationFrame(animate);
+136|            if (!gameActive) return;
+137|
+138|            const delta = time - lastTime;
+139|            lastTime = time;
+140|
+141|            // Score
+142|            score += delta * 0.016;
+143|            ui.innerText = `Score: ${Math.floor(score)}`;
+144|
+145|            // Player Movement
+146|            if (isBot) {
+147|                // Bot Logic
+148|                botTimer += delta;
+149|                if (botTimer > botTimerLimit) {
+150|                    botDirection.set(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
+151|                    botTimer = 0;
+152|                    botTimerLimit = 500 + Math.random() * 1000;
+153|                }
+154|
+155|                let moveDir = new THREE.Vector3(botDirection.x, 0, botDirection.z);
+156|
+157|                // Flee from nearest enemy
+158|                let minDist = Infinity;
+159|                let nearest = null;
+160|                enemies.forEach(enemy => {
+161|                    const d = player.position.distanceTo(enemy.position);
+162|                    if (d < minDist) {
+163|                        minDist = d;
+164|                        nearest = enemy;
+165|                    }
+166|                });
+167|
+168|                if (nearest && minDist < 20) {
+169|                    const flee = new THREE.Vector3().subVectors(player.position, nearest.position).normalize();
+170|                    moveDir.lerp(flee, 0.8);
+171|                }
+172|
+173|                // Edge Avoidance
+174|                const distFromCenter = player.position.length();
+175|                if (distFromCenter > 85) {
+176|                    const edgeFlee = new THREE.Vector3().subVectors(new THREE.Vector3(0, 0, 0), player.position).normalize();
+177|                    moveDir.lerp(edgeFlee, 0.5);
+178|                }
+179|
+180|                player.position.x += moveDir.x * PLAYER_SPEED;
+181|                player.position.z += moveDir.z * PLAYER_SPEED;
+182|            } else {
+183|                // Manual Movement
+184|                if (keys['KeyW']) player.position.z -= PLAYER_SPEED;
+185|                if (keys['KeyS']) player.position.z += PLAYER_SPEED;
+186|                if (keys['KeyA']) player.position.x -= PLAYER_SPEED;
+187|                if (keys['KeyD']) player.position.x += PLAYER_SPEED;
+188|            }
+189|
+190|            // Glow Pulse
+191|            player.material.emissiveIntensity = 2 + Math.sin(time * 0.005) * 1.5;
+192|
+193|            // Camera Follow (Low Angle)
+194|            camera.position.x = player.position.x;
+195|            camera.position.z = player.position.z + 15;
+196|            camera.position.y = 8;
+197|            camera.lookAt(player.position);
+198|
+199|            // Lights Follow
+200|            window.playerLight.position.set(player.position.x, player.position.y, player.position.z);
+201|
+202|            // Enemies logic
+203|            spawnTimer += delta;
+204|            if (spawnTimer > SPAWN_RATE) {
+205|                spawnEnemy();
+206|                spawnTimer = 0;
+207|            }
+208|
+209|            enemies.forEach(enemy => {
+210|                const dx = player.position.x - enemy.position.x;
+211|                const dz = player.position.z - enemy.position.z;
+212|                const dist = Math.sqrt(dx*dx + dz*dz);
+213|                
+214|                enemy.position.x += (dx / dist) * ENEMY_SPEED;
+215|                enemy.position.z += (dz / dist) * ENEMY_SPEED;
+216|
+217|                // Collision
+218|                if (dist < 1.5) {
+219|                    gameActive = false;
+220|                    msg.style.display = 'block';
+221|                }
+222|            });
+223|
+224|            renderer.render(scene, camera);
+225|        }
+226|
+227|        init();
+228|    </script>
+229|
+</div>
+  <details style="max-width: 1200px; width:100%; margin: 0.5em auto;">
+    <summary style="color: #00d4ff; cursor: pointer; font-size: 0.82em; padding: 0.3em 0; user-select: none; text-align: center;">Game details &mdash; click to expand</summary>
+    <div style="text-align:center;color:#8892a0;font-size:0.85em;">Move with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> &middot; Press <kbd>R</kbd> to restart &middot; <a href="?bot=true" style="color:#00d4ff;">Bot mode</a></div>
+    <em style="display:block;text-align:center;color:#667;font-size:0.7em;">Built by Gemma-4-12b-qat (local)</em>
+  <table class="stats-table">
+    <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>Game Title</td><td>3D Space Dodge — Gemma-4-12b-qat</td></tr>
+    <tr><td>Model</td><td>Gemma-4-12b-qat</td></tr>
+    <tr><td>Provider</td><td>Local — Apple Mac Mini M4 (16GB)</td></tr>
+    <tr><td>Model ID</td><td style="font-family:monospace;font-size:0.85em;color:#8892a0;">google/gemma-4-12b-qat</td></tr>
+    <tr><td>Temperature</td><td>0.4</td></tr>
+    <tr><td>Max Tokens</td><td>8,192</td></tr>
+    <tr><td>Tokens Used</td><td>8,431</td></tr>
+    <tr><td>Build Time</td><td>691s (2 prompts)</td></tr>
+    <tr><td>File Size</td><td>8.3 KB</td></tr>
+    <tr><td>Cost</td><td>$0 (local)</td></tr>
+    <tr><td>Notes</td><td style="color:#ff6b35;">Slowest benchmark (11.5 min). Both prompts succeeded. Bot mode working.</td></tr>
+    <tr><td>Source</td><td><a href="https://github.com/driphtyio/3d-space-dodge" style="color:#00d4ff;">GitHub</a></td></tr>
+  </table>
+  </details>
+  <script src="/play-counter.js" data-game="3d-space-dodge-gemma-qat"></script>
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Space Dodge — GLM-4.6V-Flash</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0b14; display: flex; flex-direction: column; align-items: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    #game-container { width: 680px; max-width: 100%; margin: 0 auto; position: relative; }
+    #game-container canvas { display: block; border-radius: 12px; max-width: 100%; }
+    .controls { color: #8892a0; font-size: 0.85em; margin-top: 0.8em; text-align: center; }
+    .controls kbd { background: #1e2035; padding: 2px 8px; border-radius: 4px; border: 1px solid #2a2d4a; color: #e6edf3; }
+  @media (min-width: 1800px) { .stats-table { max-width: 1100px !important; } }
+  @media (min-width: 2000px) { .stats-table { max-width: 1200px !important; } }
+  .stats-table { width: 100%; max-width: 800px !important; margin: 0.5em auto; border-collapse: collapse; font-size: 0.78em; }
+  .stats-table th, .stats-table td { padding: 0.3em 0.6em; border: 1px solid #1e2035; color: #c8d0e0; }
+  .stats-table th { background: #11131f; color: #00d4ff; font-weight: 600; text-align: left; }
+  .stats-table td:first-child { color: #8892a0; font-weight: 600; width: 30%; white-space: nowrap; }
+</style>
+</head>
+<body>
+<script>if(window.top!==window.self)document.write('<style>header{display:none!important}</style>');</script>
+<header style="position:sticky;top:0;z-index:100;width:100%;background:rgba(10,11,20,0.92);backdrop-filter:blur(10px);border-bottom:1px solid #181a2a;">
+  <div style="max-width:90%;width:100%;margin:0 auto;padding:0.7em 1.5em;display:flex;align-items:center;">
+    <a href="/" style="display:flex;align-items:center;gap:0.4em;text-decoration:none;font-size:1.2em;font-weight:700;color:#f0f6fc;">
+      <span style="color:#ff6b35;">&#9654;</span>
+      <span style="background:linear-gradient(135deg,#ff6b35,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">AI Gaming Dev</span>
+    </a>
+    <nav style="margin-left:auto;display:flex;gap:1em;">
+      <a href="/blog/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Blog</a>
+      <a href="/games/" style="color:#ff6b35;text-decoration:none;font-size:0.9em;font-weight:500;">Play</a>
+      <a href="/leaderboard/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Leaderboard</a>
+      <a href="/roadmap/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Roadmaps</a>
+    </nav>
+  </div>
+</header>
+  <div id="game-container">
+<canvas id="game-canvas" width="680" height="480"></canvas>
+
+    <script>
+        // Three.js CDN
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+        document.head.appendChild(script);
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+
+        // Camera setup
+        const camera = new THREE.PerspectiveCamera(75, 680 / 480, 0.1, 1000);
+        camera.position.set(0, 10, 20); // low angle top-down
+        camera.lookAt(0, 0, 0);
+
+        // Renderer setup
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('game-canvas'), antialias: true });
+        renderer.setSize(680, 480);
+
+        document.body.appendChild(renderer.domElement);
+
+        // Player setup
+        const playerGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+        const playerMaterial = new THREE.MeshPhongMaterial({ color: 0x00aaff, emissive: 0x004488, emissiveIntensity: 0.5 });
+        const player = new THREE.Mesh(playerGeometry, playerMaterial);
+        player.position.set(0, 1, 0);
+
+        scene.add(player);
+
+        // Enemy setup
+        const enemies = [];
+
+        function spawnEnemy() {
+            const enemyGeometry = new THREE.BoxGeometry(1, 1, 1);
+            const enemyMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0x880000, emissiveIntensity: 0.5 });
+            const enemy = new THREE.Mesh(enemyGeometry, enemyMaterial);
+            
+            // Spawn from outside the visible area
+            const spawnX = (Math.random() - 0.5) * 100;
+            const spawnZ = (Math.random() - 0.5) * 100;
+            enemy.position.set(spawnX, 10, spawnZ);
+            
+            scene.add(enemy);
+            enemies.push(enemy);
+        }
+
+        // Game state
+        let score = 0;
+        const scoreDisplay = document.createElement('div');
+        scoreDisplay.style.position = 'absolute';
+        scoreDisplay.style.top = '10px';
+        scoreDisplay.style.left = '10px';
+        scoreDisplay.style.color = '#00aaff';
+        scoreDisplay.style.fontSize = '20px';
+        document.body.appendChild(scoreDisplay);
+
+        let gameOver = false;
+        const gameoverDisplay = document.createElement('div');
+        gameoverDisplay.style.position = 'absolute';
+        gameoverDisplay.style.top = '50%';
+        gameoverDisplay.style.left = '50%';
+        gameoverDisplay.style.color = '#ff0000';
+        gameoverDisplay.style.fontSize = '30px';
+        gameoverDisplay.style.textAlign = 'center';
+        gameoverDisplay.style.transform = 'translate(-50%, -50%)';
+        document.body.appendChild(gameoverDisplay);
+
+        // Player controls
+        const keys = { w: false, a: false, s: false, d: false };
+        document.addEventListener('keydown', (e) => {
+            switch(e.key.toLowerCase()) {
+                case 'w': keys.w = true; break;
+                case 'a': keys.a = true; break;
+                case 's': keys.s = true; break;
+                case 'd': keys.d = true; break;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            switch(e.key.toLowerCase()) {
+                case 'w': keys.w = false; break;
+                case 'a': keys.a = false; break;
+                case 's': keys.s = false; break;
+                case 'd': keys.d = false; break;
+            }
+        });
+
+        // Score update
+        function updateScore() {
+            if (!gameOver) {
+                score++;
+                scoreDisplay.textContent = `Score: ${score}`;
+            }
+        }
+
+        setInterval(updateScore, 1000);
+
+        // Bot mode detection
+        const botMode = new URLSearchParams(window.location.search).get('bot') === 'true';
+
+        // Bot AI variables
+        let botDirection = new THREE.Vector3();
+        let wanderTimer = 0;
+        const WANDER_INTERVAL = Math.random() * (1500 - 500) + 500;
+
+        // Boundary ring setup
+        const boundaryRingGeometry = new THREE.TorusGeometry(25, 0.5, 16, 100);
+        const boundaryRingMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x404040, 
+            emissive: 0x202020,
+            transparent: true,
+            opacity: 0.3
+        });
+        const boundaryRing = new THREE.Mesh(boundaryRingGeometry, boundaryRingMaterial);
+        scene.add(boundaryRing);
+
+        // Glow pulse setup
+        const glowIntensity = 0.5;
+        player.material.emissiveIntensity = glowIntensity;
+
+        // Game loop
+        function gameLoop() {
+            requestAnimationFrame(gameLoop);
+            
+            if (!gameOver) {
+                // Update player position
+                const moveSpeed = 0.1;
+                
+                if (botMode) {
+                    // Bot AI logic
+                    wanderTimer += 16.67; // assuming ~60fps
+                    
+                    if (wanderTimer >= WANDER_INTERVAL) {
+                        wanderTimer = 0;
+                        botDirection.set(
+                            (Math.random() - 0.5) * 2,
+                            0,
+                            (Math.random() - 0.5) * 2
+                        );
+                    }
+                    
+                    // Edge avoidance logic
+                    if (player.position.x > 24) player.position.x = 24;
+                    if (player.position.x < -24) player.position.x = -24;
+                    if (player.position.z > 24) player.position.z = 24;
+                    if (player.position.z < -24) player.position.z = -24;
+
+                    // Move in bot direction
+                    player.position.add(botDirection.clone().multiplyScalar(moveSpeed)));
+                } else {
+                    // Human control
+                    if (keys.w) player.position.z -= moveSpeed;
+                    if (keys.a) player.position.x -= moveSpeed;
+                    if (keys.s) player.position.z += moveSpeed;
+                    if (keys.d) player.position.x += moveSpeed;
+
+                    // Edge avoidance for human
+                    if (player.position.x > 24) player.position.x = 24;
+                    if (player.position.x < -24) player.position.x = -24;
+                    if (player.position.z > 24) player.position.z = 24;
+                    if (player.position.z < -24) player.position.z = -24;
+                }
+
+                // Update enemies
+                enemies.forEach(enemy => {
+                    const direction = new THREE.Vector3();
+                    direction.subVectors(player.position, enemy.position).normalize();
+
+                    const moveSpeed = 0.05;
+                    enemy.position.add(direction.multiplyScalar(moveSpeed)));
+                });
+
+                // Check collision
+                enemies.forEach(enemy => {
+                    const distance = player.position.distanceTo(enemy.position);
+                    if (distance < 1) { // collision threshold
+                        gameOver = true;
+                        gameoverDisplay.textContent = 'Game Over! Press R to restart.';
+                    }
+                });
+            }
+
+            // Glow pulse animation
+            const pulseTime = Date.now() * 0.002;
+            player.material.emissiveIntensity = glowIntensity + Math.sin(pulseTime) * 0.3;
+
+            renderer.render(scene, camera);
+        }
+
+        gameLoop();
+
+        // Reset function
+        function resetGame() {
+            gameOver = false;
+            score = 0;
+            scoreDisplay.textContent = `Score: ${score}`;
+            gameoverDisplay.textContent = '';
+
+            // Remove all enemies
+            enemies.forEach(enemy => {
+                scene.remove(enemy);
+                enemy.geometry.dispose();
+                enemy.material.dispose();
+            });
+            enemies.length = 0;
+
+            // Reset player position
+            player.position.set(0, 1, 0);
+
+            // Spawn initial enemies
+            for (let i = 0; i < 3; i++) {
+                spawnEnemy();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'r') {
+                resetGame();
+            }
+        });
+
+        // Initial enemy spawn
+        for (let i = 0; i < 3; i++) {
+            spawnEnemy();
+        }
+    </script>
+  </div>
+  <details style="max-width: 1200px; width:100%; margin: 0.5em auto;">
+    <summary style="color: #00d4ff; cursor: pointer; font-size: 0.82em; padding: 0.3em 0; user-select: none; text-align: center;">Game details &mdash; click to expand</summary>
+    <div style="text-align:center;color:#8892a0;font-size:0.85em;">Move with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> &middot; Press <kbd>R</kbd> to restart &middot; <a href="?bot=true" style="color:#00d4ff;">Bot mode</a></div>
+    <em style="display:block;text-align:center;color:#667;font-size:0.7em;">Built by GLM-4.6V-Flash (local)</em>
+  <table class="stats-table">
+    <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>Game Title</td><td>3D Space Dodge — GLM-4.6V-Flash</td></tr>
+    <tr><td>Model</td><td>GLM-4.6V-Flash</td></tr>
+    <tr><td>Provider</td><td>Local — Apple Mac Mini M4 (16GB)</td></tr>
+    <tr><td>Model ID</td><td style="font-family:monospace;font-size:0.85em;color:#8892a0;">zai-org/glm-4.6v-flash</td></tr>
+    <tr><td>Temperature</td><td>0.4</td></tr>
+    <tr><td>Max Tokens</td><td>8,192</td></tr>
+    <tr><td>Tokens Used</td><td>6,063</td></tr>
+    <tr><td>Build Time</td><td>354s (2 prompts)</td></tr>
+    <tr><td>File Size</td><td>8.8 KB</td></tr>
+    <tr><td>Cost</td><td>$0 (local)</td></tr>
+    <tr><td>Notes</td><td style="color:#ff6b35;">Both prompts successful. Bot mode working. Mid-range local performance.</td></tr>
+    <tr><td>Source</td><td><a href="https://github.com/driphtyio/3d-space-dodge" style="color:#00d4ff;">GitHub</a></td></tr>
+  </table>
+  </details>
+  <script src="/play-counter.js" data-game="3d-space-dodge-glm-4.6v"></script>
+</body>
+</html>

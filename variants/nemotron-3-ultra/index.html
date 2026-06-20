@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Space Dodge — Nemotron 3 Ultra</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0b14; display: flex; flex-direction: column; align-items: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    #game-container { width: 680px; max-width: 100%; margin: 0 auto; position: relative; }
+    #game-container canvas { display: block; border-radius: 12px; max-width: 100%; }
+    .controls { color: #8892a0; font-size: 0.85em; margin-top: 0.8em; text-align: center; }
+    .controls kbd { background: #1e2035; padding: 2px 8px; border-radius: 4px; border: 1px solid #2a2d4a; color: #e6edf3; }
+  @media (min-width: 1800px) { .stats-table { max-width: 1100px !important; } }
+  @media (min-width: 2000px) { .stats-table { max-width: 1200px !important; } }
+  .stats-table { width: 100%; max-width: 800px !important; margin: 0.5em auto; border-collapse: collapse; font-size: 0.78em; }
+  .stats-table th, .stats-table td { padding: 0.3em 0.6em; border: 1px solid #1e2035; color: #c8d0e0; }
+  .stats-table th { background: #11131f; color: #00d4ff; font-weight: 600; text-align: left; }
+  .stats-table td:first-child { color: #8892a0; font-weight: 600; width: 30%; white-space: nowrap; }
+</style>
+</head>
+<body>
+<script>if(window.top!==window.self)document.write('<style>header{display:none!important}</style>');</script>
+<header style="position:sticky;top:0;z-index:100;width:100%;background:rgba(10,11,20,0.92);backdrop-filter:blur(10px);border-bottom:1px solid #181a2a;">
+  <div style="max-width:90%;width:100%;margin:0 auto;padding:0.7em 1.5em;display:flex;align-items:center;">
+    <a href="/" style="display:flex;align-items:center;gap:0.4em;text-decoration:none;font-size:1.2em;font-weight:700;color:#f0f6fc;">
+      <span style="color:#ff6b35;">&#9654;</span>
+      <span style="background:linear-gradient(135deg,#ff6b35,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">AI Gaming Dev</span>
+    </a>
+    <nav style="margin-left:auto;display:flex;gap:1em;">
+      <a href="/blog/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Blog</a>
+      <a href="/games/" style="color:#ff6b35;text-decoration:none;font-size:0.9em;font-weight:500;">Play</a>
+      <a href="/leaderboard/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Leaderboard</a>
+      <a href="/roadmap/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Roadmaps</a>
+    </nav>
+  </div>
+</header>
+  <div id="game-container">
+<div id="game-container">
+<canvas id="canvas" width="680" height="480"></canvas>
+<div id="ui"><div id="score">SCORE: 0</div><div id="bot-indicator"></div></div>
+<div id="game-over">
+<h1>GAME OVER</h1>
+<div class="final-score" id="final-score">0</div>
+<p>PRESS R TO RESTART</p>
+</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const canvas = document.getElementById('canvas');
+const scoreEl = document.getElementById('score');
+const botIndicatorEl = document.getElementById('bot-indicator');
+const gameOverEl = document.getElementById('game-over');
+const finalScoreEl = document.getElementById('final-score');
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(680, 480);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x05050a);
+scene.fog = new THREE.FogExp2(0x05050a, 0.008);
+
+const camera = new THREE.PerspectiveCamera(50, 680 / 480, 0.1, 2000);
+camera.position.set(0, 180, 120);
+camera.lookAt(0, 0, 0);
+
+const player = new THREE.Group();
+const playerGeo = new THREE.SphereGeometry(8, 32, 32);
+const playerMat = new THREE.MeshStandardMaterial({
+color: 0x00ffff,
+emissive: 0x00ffff,
+emissiveIntensity: 1.5,
+metalness: 0.3,
+roughness: 0.2
+});
+const playerMesh = new THREE.Mesh(playerGeo, playerMat);
+playerMesh.castShadow = true;
+player.add(playerMesh);
+
+const glowGeo = new THREE.SphereGeometry(10, 16, 16);
+const glowMat = new THREE.MeshBasicMaterial({
+color: 0x00ffff,
+transparent: true,
+opacity: 0.15,
+side: THREE.BackSide
+});
+const glowMesh = new THREE.Mesh(glowGeo, glowMat);
+player.add(glowMesh);
+
+const light = new THREE.PointLight(0x00ffff, 1.5, 100);
+light.castShadow = true;
+player.add(light);
+
+scene.add(player);
+
+const planeSize = 800;
+const planeGeo = new THREE.PlaneGeometry(planeSize, planeSize, 80, 80);
+const planeMat = new THREE.MeshStandardMaterial({
+color: 0x0a0a12,
+emissive: 0x001122,
+emissiveIntensity: 0.3,
+metalness: 0.1,
+roughness: 0.9,
+side: THREE.DoubleSide
+});
+const plane = new THREE.Mesh(planeGeo, planeMat);
+plane.rotation.x = -Math.PI / 2;
+plane.receiveShadow = true;
+scene.add(plane);
+
+const gridHelper = new THREE.GridHelper(planeSize, 80, 0x00ffff, 0x003344);
+gridHelper.material.opacity = 0.4;
+gridHelper.material.transparent = true;
+gridHelper.position.y = 0.5;
+scene.add(gridHelper);
+
+const ringGeo = new THREE.RingGeometry(planeSize / 2 - 20, planeSize / 2 - 18, 128);
+const ringMat = new THREE.MeshBasicMaterial({
+color: 0x00ffff,
+transparent: true,
+opacity: 0.15,
+side: THREE.DoubleSide
+});
+const boundaryRing = new THREE.Mesh(ringGeo, ringMat);
+boundaryRing.rotation.x = -Math.PI / 2;
+boundaryRing.position.y = 0.6;
+scene.add(boundaryRing);
+
+const ambientLight = new THREE.AmbientLight(0x112244, 0.6);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0x00ffff, 0.4);
+dirLight.position.set(100, 200, 100);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(2048, 2048);
+dirLight.shadow.camera.near = 10;
+dirLight.shadow.camera.far = 400;
+dirLight.shadow.camera.left = -200;
+dirLight.shadow.camera.right = 200;
+dirLight.shadow.camera.top = 200;
+dirLight.shadow.camera.bottom = -200;
+scene.add(dirLight);
+
+const enemies = [];
+const enemyPool = [];
+const ENEMY_SPEED = 3.5;
+const SPAWN_INTERVAL = 1.2;
+const SPAWN_DISTANCE = 450;
+const PLAYER_SPEED = 12;
+const BOUNDS = planeSize / 2 - 20;
+
+let score = 0;
+let gameOver = false;
+let spawnTimer = 0;
+let lastTime = 0;
+const keys = { w: false, a: false, s: false, d: false };
+
+const urlParams = new URLSearchParams(window.location.search);
+const isBotMode = urlParams.get('bot') === 'true';
+let botWanderTarget = new THREE.Vector3();
+let botWanderTimer = 0;
+let botWanderInterval = 0;
+
+if (isBotMode) {
+botIndicatorEl.textContent = 'BOT MODE ACTIVE';
+botPickNewWanderTarget();
+}
+
+function botPickNewWanderTarget() {
+const margin = 100;
+botWanderTarget.set(
+THREE.MathUtils.randFloat(-BOUNDS + margin, BOUNDS - margin),
+0,
+THREE.MathUtils.randFloat(-BOUNDS + margin, BOUNDS - margin)
+);
+botWanderInterval = THREE.MathUtils.randFloat(0.5, 1.5);
+botWanderTimer = 0;
+}
+
+function createEnemy() {
+let enemy;
+if (enemyPool.length > 0) {
+enemy = enemyPool.pop();
+enemy.visible = true;
+} else {
+const geo = new THREE.BoxGeometry(14, 14, 14);
+const mat = new THREE.MeshStandardMaterial({
+color: 0xff0040,
+emissive: 0xff0040,
+emissiveIntensity: 1.2,
+metalness: 0.4,
+roughness: 0.3
+});
+enemy = new THREE.Mesh(geo, mat);
+enemy.castShadow = true;
+enemy.receiveShadow = true;
+const glow = new THREE.Mesh(
+new THREE.BoxGeometry(18, 18, 18),
+new THREE.MeshBasicMaterial({ color: 0xff0040, transparent: true, opacity: 0.1, side: THREE.BackSide })
+);
+enemy.add(glow);
+const light = new THREE.PointLight(0xff0040, 0.8, 60);
+enemy.add(light);
+enemy.userData.glow = glow;
+enemy.userData.light = light;
+}
+const angle = Math.random() * Math.PI * 2;
+const x = Math.cos(angle) * SPAWN_DISTANCE;
+const z = Math.sin(angle) * SPAWN_DISTANCE;
+enemy.position.set(x, 7, z);
+enemy.userData.alive = true;
+enemies.push(enemy);
+scene.add(enemy);
+return enemy;
+}
+
+function despawnEnemy(enemy) {
+enemy.visible = false;
+enemy.userData.alive = false;
+const idx = enemies.indexOf(enemy);
+if (idx !== -1) enemies.splice(idx, 1);
+enemyPool.push(enemy);
+}
+
+function resetGame() {
+score = 0;
+gameOver = false;
+spawnTimer = 0;
+player.position.set(0, 8, 0);
+playerMesh.scale.set(1, 1, 1);
+glowMesh.scale.set(1, 1, 1);
+light.intensity = 1.5;
+playerMesh.material.emissive.setHex(0x00ffff);
+playerMesh.material.color.setHex(0x00ffff);
+light.color.setHex(0x00ffff);
+glowMesh.material.color.setHex(0x00ffff);
+scoreEl.textContent = 'SCORE: 0';
+gameOverEl.classList.remove('visible');
+enemies.forEach(e => despawnEnemy(e));
+enemies.length = 0;
+if (isBotMode) botPickNewWanderTarget();
+}
+
+function checkCollision(a, b) {
+const dx = a.position.x - b.position.x;
+const dz = a.position.z - b.position.z;
+const dist = Math.sqrt(dx * dx + dz * dz);
+return dist < 18;
+}
+
+function updatePlayer(dt) {
+if (isBotMode) {
+updateBot(dt);
+return;
+}
+const vel = new THREE.Vector3();
+if (keys.w) vel.z -= 1;
+if (keys.s) vel.z += 1;
+if (keys.a) vel.x -= 1;
+if (keys.d) vel.x += 1;
+if (vel.length() > 0) vel.normalize().multiplyScalar(PLAYER_SPEED * dt);
+player.position.add(vel);
+player.position.x = THREE.MathUtils.clamp(player.position.x, -BOUNDS, BOUNDS);
+player.position.z = THREE.MathUtils.clamp(player.position.z, -BOUNDS, BOUNDS);
+}
+
+function updateBot(dt) {
+botWanderTimer += dt;
+if (botWanderTimer >= botWanderInterval) {
+botPickNewWanderTarget();
+}
+
+let nearestEnemy = null;
+let nearestDistSq = Infinity;
+for (const enemy of enemies) {
+if (!enemy.userData.alive) continue;
+const dx = enemy.position.x - player.position.x;
+const dz = enemy.position.z - player.position.z;
+const distSq = dx * dx + dz * dz;
+if (distSq < nearestDistSq) {
+nearestDistSq = distSq;
+nearestEnemy = enemy;
+}
+}
+
+const moveDir = new THREE.Vector3();
+const FLEE_DISTANCE_SQ = 250 * 250;
+const EDGE_MARGIN = 80;
+const EDGE_FORCE = 1.5;
+
+if (nearestEnemy && nearestDistSq < FLEE_DISTANCE_SQ) {
+const fleeDir = new THREE.Vector3()
+.subVectors(player.position, nearestEnemy.position)
+.normalize();
+moveDir.addScaledVector(fleeDir, 1.5);
+}
+
+if (player.position.x < -BOUNDS + EDGE_MARGIN) moveDir.x += EDGE_FORCE * (1 - (player.position.x + BOUNDS) / EDGE_MARGIN);
+if (player.position.x > BOUNDS - EDGE_MARGIN) moveDir.x -= EDGE_FORCE * (1 - (BOUNDS - player.position.x) / EDGE_MARGIN);
+if (player.position.z < -BOUNDS + EDGE_MARGIN) moveDir.z += EDGE_FORCE * (1 - (player.position.z + BOUNDS) / EDGE_MARGIN);
+if (player.position.z > BOUNDS - EDGE_MARGIN) moveDir.z -= EDGE_FORCE * (1 - (BOUNDS - player.position.z) / EDGE_MARGIN);
+
+if (moveDir.length() < 0.1) {
+const wanderDir = new THREE.Vector3()
+.subVectors(botWanderTarget, player.position);
+wanderDir.y = 0;
+if (wanderDir.length() > 0.5) {
+wanderDir.normalize();
+moveDir.add(wanderDir);
+} else {
+botPickNewWanderTarget();
+}
+}
+
+if (moveDir.length() > 0) {
+moveDir.normalize().multiplyScalar(PLAYER_SPEED * dt);
+player.position.add(moveDir);
+}
+player.position.x = THREE.MathUtils.clamp(player.position.x, -BOUNDS, BOUNDS);
+player.position.z = THREE.MathUtils.clamp(player.position.z, -BOUNDS, BOUNDS);
+}
+
+function updateEnemies(dt) {
+for (let i = enemies.length - 1; i >= 0; i--) {
+const enemy = enemies[i];
+if (!enemy.userData.alive) continue;
+const dir = new THREE.Vector3()
+.subVectors(player.position, enemy.position)
+.normalize();
+enemy.position.addScaledVector(dir, ENEMY_SPEED * dt);
+enemy.position.y = 7 + Math.sin(performance.now() * 0.005 + enemy.position.x * 0.01) * 1.5;
+enemy.rotation.y += dt * 2;
+enemy.userData.glow.scale.setScalar(1 + Math.sin(performance.now() * 0.01) * 0.1);
+if (checkCollision(enemy, player)) {
+triggerGameOver();
+return;
+}
+}
+}
+
+function triggerGameOver() {
+gameOver = true;
+finalScoreEl.textContent = Math.floor(score);
+gameOverEl.classList.add('visible');
+playerMesh.material.emissive.setHex(0xff0040);
+playerMesh.material.color.setHex(0xff0040);
+light.color.setHex(0xff0040);
+glowMesh.material.color.setHex(0xff0040);
+}
+
+function updateCamera() {
+const targetX = player.position.x;
+const targetZ = player.position.z;
+camera.position.x += (targetX - camera.position.x) * 0.08;
+camera.position.z += (targetZ + 120 - camera.position.z) * 0.08;
+camera.lookAt(targetX, 0, targetZ);
+}
+
+function animate(time) {
+requestAnimationFrame(animate);
+const dt = Math.min((time - lastTime) / 1000, 0.1);
+lastTime = time;
+if (!gameOver) {
+spawnTimer += dt;
+if (spawnTimer >= SPAWN_INTERVAL) {
+createEnemy();
+spawnTimer = 0;
+}
+score += dt;
+scoreEl.textContent = 'SCORE: ' + Math.floor(score);
+updatePlayer(dt);
+updateEnemies(dt);
+const pulse = 1 + Math.sin(time * 0.005) * 0.15;
+playerMesh.scale.setScalar(pulse);
+glowMesh.scale.setScalar(pulse * 1.25);
+light.intensity = 1.5 + Math.sin(time * 0.01) * 0.4;
+playerMesh.material.emissiveIntensity = 1.5 + Math.sin(time * 0.008) * 0.3;
+gridHelper.material.opacity = 0.3 + Math.sin(time * 0.003) * 0.1;
+boundaryRing.material.opacity = 0.1 + Math.sin(time * 0.004) * 0.05;
+boundaryRing.scale.setScalar(1 + Math.sin(time * 0.002) * 0.02);
+}
+updateCamera();
+renderer.render(scene, camera);
+}
+
+window.addEventListener('keydown', e => {
+const k = e.key.toLowerCase();
+if (k in keys) keys[k] = true;
+if (k === 'r' && gameOver) resetGame();
+});
+window.addEventListener('keyup', e => {
+const k = e.key.toLowerCase();
+if (k in keys) keys[k] = false;
+});
+
+resetGame();
+animate(0);
+</script>
+  </div>
+  <details style="max-width: 1200px; width:100%; margin: 0.5em auto;">
+    <summary style="color: #00d4ff; cursor: pointer; font-size: 0.82em; padding: 0.3em 0; user-select: none; text-align: center;">Game details &mdash; click to expand</summary>
+    <div style="text-align:center;color:#8892a0;font-size:0.85em;">Move with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> &middot; Press <kbd>R</kbd> to restart &middot; <a href="?bot=true" style="color:#00d4ff;">Bot mode</a></div>
+    <em style="display:block;text-align:center;color:#667;font-size:0.7em;">Built by Nemotron 3 Ultra 550B (OpenRouter)</em>
+  <table class="stats-table">
+    <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>Game Title</td><td>3D Space Dodge — Nemotron 3 Ultra</td></tr>
+    <tr><td>Model</td><td>Nemotron 3 Ultra (550B)</td></tr>
+    <tr><td>Provider</td><td>OpenRouter</td></tr>
+    <tr><td>Model ID</td><td style="font-family:monospace;font-size:0.85em;color:#8892a0;">nvidia/nemotron-3-ultra-550b-a55b</td></tr>
+    <tr><td>Temperature</td><td>0.4</td></tr>
+    <tr><td>Max Tokens</td><td>8,192</td></tr>
+    <tr><td>Tokens Used</td><td>7,350</td></tr>
+    <tr><td>Build Time</td><td>~2s (2 prompts)</td></tr>
+    <tr><td>File Size</td><td>11.7 KB</td></tr>
+    <tr><td>Cost</td><td>$0.003</td></tr>
+    <tr><td>Notes</td><td style="color:#ff6b35;">550B model. Fast inference. Bot mode working. Low cost.</td></tr>
+    <tr><td>Source</td><td><a href="https://github.com/driphtyio/3d-space-dodge" style="color:#00d4ff;">GitHub</a></td></tr>
+  </table>
+  </details>
+  <script src="/play-counter.js" data-game="3d-space-dodge-nemotron-3-ultra"></script>
+</body>
+</html>
