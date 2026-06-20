@@ -35,32 +35,32 @@ All scores are composite: output quality, build speed, token efficiency, bug cou
 | 9 | **poolside/laguna-m.1** | Free API | ~2s | 7,796 | 6.7 KB | $0 | **80** | PASS |
 | 10 | **Qwen 3.5 9B** | Local | 462s | 5,435 | 9.5 KB | $0 | **68** | DEGRADED |
 | 11 | **Gemma-4-12b-qat** | Local | 691s | 8,431 | 8.3 KB | $0 | **70** | PASS |
-| 12 | **Gemma-4-12b-coder-fable** | Local | 181s | 2,128 | 3.4 KB | $0 | **62** | DEGRADED |
-| 13 | **Nemotron-3-Nano-4B** | Local | 209s | 5,211 | 4.8 KB | $0 | **65** | DEGRADED |
-| 14 | **GPT-OSS-120B** | Free API | ~2s | 3,292 | 6.7 KB | $0 | **60** | PASS |
+| 12 | **Nemotron-3-Nano-4B** | Local | 209s | 5,211 | 4.8 KB | $0 | **65** | DEGRADED |
+| 13 | **GPT-OSS-120B** | Free API | ~2s | 3,292 | 6.7 KB | $0 | **60** | PASS |
 | — | GPT-OSS-20B | Local | 38s | 1,235 | 4.2 KB | $0 | — | FAILED |
 | — | Llama 3.1 8B | Local | 128s | 2,591 | 8.0 KB | $0 | — | FAILED |
 | — | GLM-4.6V-Flash | Local | 354s | 6,063 | 8.8 KB | $0 | — | FAILED |
+| — | Gemma-4-12b-coder-fable | Local | 181s | 2,128 | 3.4 KB | $0 | — | FAILED |
 | — | Gemma-4-12b-agentic-fable5 | Local | 234s | 2,577 | 3.6 KB | $0 | — | FAILED |
 
 **Status key:** PASS = canvas renders with WebGL, zero JS errors. DEGRADED = canvas renders but has code bugs from the model (affects score). FAILED = no canvas or game never renders.
 
 **DEGRADED breakdown (verified with WebGL animation-loop testing):**
 
-| Variant | WebGL | Score UI | Errors | Verdict |
-|---------|-------|----------|--------|---------|
+| Degraded Variants | WebGL | Score UI | Errors | Verdict |
+|-------------------|-------|----------|--------|---------|
 | Qwen 3.5 9B | 680x480 | ✅ | 6 const reassignment | Game runs, errors degrade gameplay |
-| Gemma-coder-fable | 300x150 | ❌ | Truncated output | Initial scene renders, loop incomplete |
 | Nemotron-3-Nano-4B | 680x480 | ❌ | Undefined `now` | Scene renders, game logic breaks |
 
 **Promoted to FAILED (not loading in real browser):**
-- **Llama 3.1 8B** — canvas locked to 2D context before WebGL creation (`getContext('2d')` then `WebGLRenderer`)
-- **GLM-4.6V-Flash** — 2 extra closing parens break JavaScript parser after scene initialization
+- **Llama 3.1 8B** — canvas locked to 2D context before WebGL creation
+- **GLM-4.6V-Flash** — 2 extra closing parens break parser after scene init
+- **Gemma-4-12b-coder-fable** — model hit token limit, output truncated mid-function (`requestAnimation... `)
 - **poolside/laguna-m.1 promoted to PASS** after one-word fix: `MeshBasicMaterial` → `MeshStandardMaterial`
 
 ### What the Numbers Tell Us
 
-**11 of 18 models shipped clean working games.** 3 produce WebGL-rendered output but have code bugs from the model (const reassignment, truncated output, undefined variables). 4 failed completely (WebGL context conflict, syntax errors, memory eviction).
+**11 of 18 models shipped clean working games.** 2 produce WebGL-rendered output but have code bugs from the model (const reassignment, undefined variables). 5 failed completely (WebGL context conflict, syntax errors, truncated output, memory eviction).
 
 **The biggest differentiator is output correctness, not speed.** A model that finishes in 2 seconds with broken code loses to one that takes 30 seconds with clean output. Fast builds with syntax errors or runtime bugs still count as failures.
 
@@ -136,7 +136,6 @@ Every model's output is playable. Each variant page shows the exact build metric
 | [Gemma-4-31B](/games/3d-space-dodge/gemma-31b/) | Gemma-4-31B | ~2s | $0 | PASS | Free tier. Clean. |
 | [poolside/laguna-m.1](/games/3d-space-dodge/poolside-laguna/) | poolside/laguna-m.1 | ~2s | $0 | PASS | Fix applied: MeshBasicMaterial→MeshStandardMaterial. |
 | [Qwen 3.5 9B](/games/3d-space-dodge/qwen-9b/) | Qwen 3.5 9B (local) | 462s | $0 | DEGRADED | WebGL renders. 6 const reassignment errors. |
-| [Gemma-coder-fable](/games/3d-space-dodge/gemma-coder/) | Gemma-4-12b-coder-fable (local) | 181s | $0 | DEGRADED | WebGL renders. Model hit token limit — output truncated. |
 | [Nemotron-3-Nano-4B](/games/3d-space-dodge/nemotron-4b/) | Nemotron-3-Nano-4B (local) | 209s | $0 | DEGRADED | WebGL renders. Undefined variable in model output. |
 | [GPT-OSS-120B](/games/3d-space-dodge/gpt-oss-120b/) | GPT-OSS-120B | ~2s | $0 | PASS | Prompt 2 ignored — no bot mode. Zero JS errors otherwise. |
 | — | GPT-OSS-20B (local) | 38s | $0 | **FAILED** | Model evicted from memory. Prompt 2 never ran. |
@@ -150,4 +149,4 @@ Every model's output is playable. Each variant page shows the exact build metric
 
 ### Key Takeaway
 
-For a simple 3D game, **most models can produce working code but only 11 of 18 shipped cleanly.** 3 have code bugs from the model, and 4 failed entirely (WebGL context conflict, syntax errors, partial build, memory eviction). Speed and output size matter less than whether the code actually runs — a model that finishes in 2 seconds with broken JavaScript is worse than one that takes 30 seconds with clean output. The next test is harder: can these models build an 80s-era game with AI, tilemaps, and state machines?
+For a simple 3D game, **most models can produce working code but only 11 of 18 shipped cleanly.** 2 have code bugs from the model, and 5 failed entirely (WebGL context conflict, syntax errors, truncated output, memory eviction). Speed and output size matter less than whether the code actually runs — a model that finishes in 2 seconds with broken JavaScript is worse than one that takes 30 seconds with clean output. The next test is harder: can these models build an 80s-era game with AI, tilemaps, and state machines?

@@ -238,21 +238,6 @@
       "notes": "Two prompts. Fastest build (6s total). Bot mode working."
     },
     {
-      "model": "Gemma-4-12b-coder-fable",
-      "model_id": "gemma-4-12b-coder-fable",
-      "provider": "Local \u2014 Apple Mac Mini M4 (16GB)",
-      "game": "3d-space-dodge",
-      "game_title": "3D Space Dodge",
-      "game_url": "/games/3d-space-dodge/gemma-coder/",
-      "build_time": 181,
-      "tokens_used": 2128,
-      "file_size": "3.4 KB",
-      "cost": 0,
-      "bugs": 1,
-      "score": 68,
-      "notes": "DEGRADED: Model hit token limit - output truncated. WebGL renders (300x150) but game loop incomplete after truncation."
-    },
-    {
       "model": "Qwen 3.5 9B",
       "model_id": "qwen-3.5-9b",
       "provider": "Local \u2014 Apple Mac Mini M4 (16GB)",
