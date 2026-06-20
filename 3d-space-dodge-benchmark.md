@@ -150,5 +150,3 @@ Every model's output is playable. Each variant page shows the exact build metric
 ### Key Takeaway
 
 For a simple 3D game, **every model that can follow instructions will ship working code.** The differentiation is in speed, output density, and instruction adherence under iteration. The next test is harder: can these models build an 80s-era game with AI, tilemaps, and state machines?
-
-[Play 3D Space Dodge](/games/3d-space-dodge/) &middot; [View Leaderboard](/leaderboard/) &middot; [GitHub Repo](https://github.com/driphtyio/3d-space-dodge)
