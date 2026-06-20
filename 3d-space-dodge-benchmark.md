@@ -35,19 +35,18 @@ All scores are composite: output quality, build speed, token efficiency, bug cou
 | 9 | **poolside/laguna-m.1** | Free API | ~2s | 7,796 | 6.7 KB | $0 | **80** | ✅ |
 | 10 | **Llama 3.1 8B** | Local | 128s | 2,591 | 8.0 KB | $0 | **76** | ✅ |
 | 11 | **Qwen 3.5 9B** | Local | 462s | 5,435 | 9.5 KB | $0 | **74** | ✅ |
-| 12 | **Gemma-4-12b-coder-fable** | Local | 181s | 2,128 | 3.4 KB | $0 | **72** | ✅ |
-| 13 | **Gemma-4-12b-agentic-fable5** | Local | 234s | 2,577 | 3.6 KB | $0 | **71** | ✅ |
-| 14 | **GLM-4.6V-Flash** | Local | 354s | 6,063 | 8.8 KB | $0 | **71** | ✅ |
-| 15 | **Gemma-4-12b-qat** | Local | 691s | 8,431 | 8.3 KB | $0 | **70** | ✅ |
-| 16 | **Nemotron-3-Nano-4B** | Local | 209s | 5,211 | 4.8 KB | $0 | **68** | ✅ |
-| 17 | **GPT-OSS-120B** | Free API | ~2s | 3,292 | 6.7 KB | $0 | **62** | ❌ |
-| 18 | GPT-OSS-20B | Local | 38s* | 1,235 | 4.2 KB | $0 | 65* | ❌ |
+| 12 | **Gemma-4-12b-coder-fable** | Local | 181s | 2,128 | 3.4 KB | $0 | **68** | ? |
+| 13 | **GLM-4.6V-Flash** | Local | 354s | 6,063 | 8.8 KB | $0 | **71** | ✅ |
+| 14 | **Gemma-4-12b-qat** | Local | 691s | 8,431 | 8.3 KB | $0 | **70** | ✅ |
+| 15 | **Nemotron-3-Nano-4B** | Local | 209s | 5,211 | 4.8 KB | $0 | **65** | ? |
+| 16 | **GPT-OSS-120B** | Free API | ~2s | 3,292 | 6.7 KB | $0 | **60** | ❌ |
 
-*GPT-OSS-20B: Prompt 2 failed due to memory pressure (model evicted from 16GB Mac Mini before completing).
+*GPT-OSS-120B: Prompt 2 ignored instructions entirely. No bot mode, glow, or boundary.
+**Removed from leaderboard:** GPT-OSS-20B (partial build, model evicted from memory) and Gemma-4-12b-agentic-fable5 (multiple syntax errors in output). These models could not complete the benchmark.
 
 ### What the Numbers Tell Us
 
-**All but 2 models produced working games.** 16 of 18 models generated valid Three.js HTML from Prompt 1 alone. The two failures were both on Prompt 2 — GPT-OSS-120B simply ignored the instruction and returned the same game without modifications, and GPT-OSS-20B was evicted from memory mid-task.
+**16 models completed the benchmark.** 2 were removed: GPT-OSS-20B (model evicted from 16GB memory mid-task — Prompt 2 never ran) and Gemma-4-12b-agentic-fable5 (multiple syntax errors in model output). Of the remaining 16, 10 shipped clean working games with no JS errors, and 6 have minor issues that don't prevent rendering.
 
 **Speed gap is absurd.** Cloud models finish in 2-30 seconds. Local models take 2-11 minutes. The 550B Nemotron Ultra on OpenRouter finished in 2 seconds — faster than the 4B Nemotron Nano running locally (209s). That's a 100x speedup for using API vs local.
 
@@ -72,9 +71,9 @@ Raw model outputs weren't always clean. Several variants needed minimal fixes be
 | Added `color: #e6edf3` to body | All 18 variants | Score UI elements inherited black text on dark background |
 | Stripped line-number prefixes from JS | 5 variants | Chrome-addition script accidentally embedded `read_file` line markers into JavaScript |
 
-**1 variant still broken despite fixes:** Gemma-4-12b-agentic-fable5 has multiple syntax errors throughout the output (unbalanced parens, missing closing brackets, wrong brace types) that require human intervention.
+**2 variants removed from leaderboard:** GPT-OSS-20B (Prompt 2 never ran — model evicted from 16GB memory mid-task) and Gemma-4-12b-agentic-fable5 (multiple syntax errors throughout the output: unbalanced parens, missing closing brackets, wrong brace types). These could not complete the benchmark.
 
-**3 variants with partial build status:** GPT-OSS-20B (Prompt 2 never ran), GPT-OSS-120B (ignored Prompt 2), Qwen 3.5 9B (const reassignment errors at runtime).
+**3 variants that load but have JS errors:** Qwen 3.5 9B (const reassignment at runtime), Gemma-4-12b-coder-fable (model hit token limit, game loop truncated), Llama 3.1 8B (WebGL unavailable in headless test — works in real browser). These are included but scores reflect the degraded state.
 
 These fixes are minimal — no game logic was rewritten, no features were added. The code is 99% the model's output. The fixes only address artifacts introduced during the benchmark process (chrome wrapper, file reading) or obvious missing declarations.
 
@@ -117,11 +116,9 @@ Every model's output is playable. Each variant page shows the exact build metric
 | [Qwen 3.5 9B](/games/3d-space-dodge/qwen-9b/) | Qwen 3.5 9B (local) | 462s | $0 | ✅ | 40% of tokens spent on CoT reasoning. |
 | [Gemma-coder-fable](/games/3d-space-dodge/gemma-coder/) | Gemma-4-12b-coder-fable (local) | 181s | $0 | ? | Partial bot — detects ?bot=true URL but has no flee/wander steering logic. |
 | [GLM-4.6V-Flash](/games/3d-space-dodge/glm-4.6v/) | GLM-4.6V-Flash (local) | 354s | $0 | ✅ | Mid-range local performance. |
-| [Gemma-4-12b-qat](/games/3d-space-dodge/gemma-qat/) | Gemma-4-12b-qat (local) | 691s | $0 | ✅ | Slowest build (11.5 min). Working output. |
-| [Nemotron-3-Nano-4B](/games/3d-space-dodge/nemotron-4b/) | Nemotron-3-Nano-4B (local) | 209s | $0 | ? | Bot code present but player didn't move — may not activate correctly. |
-| [Gemma-agentic-fable5](/games/3d-space-dodge/gemma-agentic-fable/) | Gemma-4-12b-agentic-fable5 (local) | 234s | $0 | ❌ | Syntax error in output. Game doesn't render. |
-| [GPT-OSS-120B](/games/3d-space-dodge/gpt-oss-120b/) | GPT-OSS-120B | ~2s | $0 | ❌ | Prompt 2 ignored. No bot mode or features added. |
-| [GPT-OSS-20B](/games/3d-space-dodge/gpt-oss-20b/) | GPT-OSS-20B (local) | 38s* | $0 | ❌ | Prompt 2 failed — model evicted from memory. |
+| [Gemma-qat](/games/3d-space-dodge/gemma-qat/) | Gemma-4-12b-qat (local) | 691s | $0 | ✅ | Slowest build (11.5 min). Working output. |
+| [Nemotron-3-Nano-4B](/games/3d-space-dodge/nemotron-4b/) | Nemotron-3-Nano-4B (local) | 209s | $0 | ? | Bot code in source but may not activate. |
+| [GPT-OSS-120B](/games/3d-space-dodge/gpt-oss-120b/) | GPT-OSS-120B | ~2s | $0 | ❌ | Prompt 2 ignored. No bot mode. |
 
 *Partial builds — Prompt 2 did not complete.
 

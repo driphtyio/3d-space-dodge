@@ -289,21 +289,6 @@
       "notes": "Slowest benchmark (11.5 min). Both prompts succeeded. Bot mode working."
     },
     {
-      "model": "GPT-OSS-20B",
-      "model_id": "gpt-oss-20b",
-      "provider": "Local — Apple Mac Mini M4 (16GB)",
-      "game": "3d-space-dodge",
-      "game_title": "3D Space Dodge",
-      "game_url": "/games/3d-space-dodge/gpt-oss-20b/",
-      "build_time": 38,
-      "tokens_used": 1235,
-      "file_size": "4.2 KB",
-      "cost": 0,
-      "bugs": 0,
-      "score": 60,
-      "notes": "Prompt 1 only (38s). Prompt 2 failed — model evicted from memory. No bot mode."
-    },
-    {
       "model": "GLM-4.6V-Flash",
       "model_id": "glm-4.6v-flash",
       "provider": "Local — Apple Mac Mini M4 (16GB)",
