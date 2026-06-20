@@ -1,0 +1,37 @@
+{
+  "best_genome": [
+    1.7199,
+    0.3121,
+    1.4047,
+    0.349,
+    1.7967,
+    1.1559
+  ],
+  "best_survival_seconds": 60.0,
+  "generations_run": 1,
+  "history": [
+    {
+      "gen": 1,
+      "best": 60.0,
+      "avg": 7.9
+    }
+  ],
+  "parameters": {
+    "arena_radius": 8.0,
+    "enemy_speed_base": 0.04,
+    "spawn_interval": "0.8s \u2192 0.3s (accelerates)",
+    "max_enemies": 15,
+    "collision_distance": 1.0,
+    "genome_size": 6,
+    "population": 120,
+    "max_simulated_time": 30
+  },
+  "genome_legend": [
+    "0: threat_gain \u2014 how much enemy proximity affects movement",
+    "1: flee_strength \u2014 how fast bot flees from closest enemy",
+    "2: wander_speed \u2014 oscillation frequency of wander direction",
+    "3: center_attract \u2014 how strongly bot stays near center",
+    "4: panic_distance \u2014 distance at which bot starts panicking",
+    "5: speed_cap \u2014 maximum movement speed"
+  ]
+}
