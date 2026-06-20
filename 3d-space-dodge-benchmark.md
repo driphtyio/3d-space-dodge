@@ -60,7 +60,7 @@ All scores are composite: output quality, build speed, token efficiency, bug cou
 
 ### What the Numbers Tell Us
 
-**11 of 18 models shipped clean working games.** 2 produce WebGL-rendered output but have code bugs from the model (const reassignment, undefined variables). 5 failed completely (WebGL context conflict, syntax errors, truncated output, memory eviction).
+**11 PASS, 2 DEGRADED, 5 FAILED** from 18 models tested. The 5 failures: WebGL context conflict (2D locks canvas), syntax errors (extra parens), truncated output (token limit), runtime errors (undefined variables), and memory eviction (Prompt 2 never ran).
 
 **The biggest differentiator is output correctness, not speed.** A model that finishes in 2 seconds with broken code loses to one that takes 30 seconds with clean output. Fast builds with syntax errors or runtime bugs still count as failures.
 
@@ -149,4 +149,4 @@ Every model's output is playable. Each variant page shows the exact build metric
 
 ### Key Takeaway
 
-For a simple 3D game, **most models can produce working code but only 11 of 18 shipped cleanly.** 2 have code bugs from the model, and 5 failed entirely (WebGL context conflict, syntax errors, truncated output, memory eviction). Speed and output size matter less than whether the code actually runs — a model that finishes in 2 seconds with broken JavaScript is worse than one that takes 30 seconds with clean output. The next test is harder: can these models build an 80s-era game with AI, tilemaps, and state machines?
+For a simple 3D game, **most models produce working code — 11 PASS, 2 DEGRADED, 5 FAILED** from 18 tested. 5 had code bugs from the model that prevent gameplay (WebGL context conflicts, syntax errors, truncated output, runtime errors, memory eviction). Speed and output size matter less than whether the code actually runs — a model that finishes in 2 seconds with broken JavaScript is worse than one that takes 30 seconds with clean output. The next test is harder: can these models build an 80s-era game with AI, tilemaps, and state machines?
