@@ -38,7 +38,8 @@
   <div id="game-container">
 <div id="score">Score: 0</div>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-    <script>
+    <script>let now = Date.now();
+
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, 680 / 480, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });

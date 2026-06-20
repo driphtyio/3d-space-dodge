@@ -38,7 +38,8 @@
   <div id="game-container">
 <div id="overlay">Score: <span id="score">0</span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
+<script>let now = Date.now();
+
 /* ---------- GLOBALS ---------- */
 let scene, camera, renderer;
 let player, playerRadius = 1;
