@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Space Dodge - Playable Demo</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="/play-counter.js" data-game="3d-space-dodge"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0b14; display: flex; flex-direction: column; align-items: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .game-wrapper { text-align: center; overflow: hidden; }
+    #game { width: 680px; max-width: 100%; margin: 0 auto; }
+    canvas { border-radius: 12px; max-width: 100%; display: block; margin: 0 auto; }
+    .controls { color: #8892a0; font-size: 0.85em; margin-top: 0.3em; text-align: center; }
+    .controls kbd { background: #1e2035; padding: 2px 8px; border-radius: 4px; border: 1px solid #2a2d4a; color: #e6edf3; }
+    #score-display { position: absolute; top: 12px; left: 12px; color: #8892a0; font: 18px monospace; z-index: 10; pointer-events: none; }
+    #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ff6b35; font: 24px monospace; text-align: center; z-index: 10; display: none; pointer-events: none; line-height: 1.6; }
+    #game-container { position: relative; display: inline-block; border-radius: 12px; overflow: hidden; }
+  @media (min-width: 1800px) {
+    .stats-table { max-width: 1100px !important; font-size: 0.85em; }
+    canvas { max-width: 800px; }
+  }
+  @media (min-width: 2000px) {
+    .stats-table { max-width: 1200px !important; }
+    canvas { max-width: 900px; }
+  }
+  .stats-table {
+    width: 100%;
+    max-width: 800px !important;
+    margin: 0.5em auto;
+    border-collapse: collapse;
+    font-size: 0.78em;
+  }
+  .stats-table th, .stats-table td {
+    padding: 0.3em 0.6em;
+    border: 1px solid #1e2035;
+    color: #c8d0e0;
+  }
+  .stats-table th {
+    background: #11131f;
+    color: #00d4ff;
+    font-weight: 600;
+    text-align: left;
+  }
+  .stats-table td:first-child {
+    color: #8892a0;
+    font-weight: 600;
+    width: 30%;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+<script>if(window.top!==window.self)document.write('<style>header{display:none!important}</style>');</script>
+<header style="position:sticky;top:0;z-index:100;width:100%;background:rgba(10,11,20,0.92);backdrop-filter:blur(10px);border-bottom:1px solid #181a2a;">
+  <div style="max-width:90%;width:100%;margin:0 auto;padding:0.7em 1.5em;display:flex;align-items:center;">
+    <a href="/" style="display:flex;align-items:center;gap:0.4em;text-decoration:none;font-size:1.2em;font-weight:700;color:#f0f6fc;">
+      <span style="color:#ff6b35;font-size:0.9em;filter:drop-shadow(0 0 6px rgba(255,107,53,0.4));">&#9654;</span>
+      <span style="background:linear-gradient(135deg,#ff6b35,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">AI Gaming Dev</span>
+    </a>
+    <nav style="margin-left:auto;display:flex;gap:1em;">
+      <a href="/blog/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Blog</a>
+      <a href="/games/" style="color:#ff6b35;text-decoration:none;font-size:0.9em;font-weight:500;">Play</a>
+      <a href="/leaderboard/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Leaderboard</a>
+      <a href="/roadmap/" style="color:#8892a0;text-decoration:none;font-size:0.9em;font-weight:500;">Roadmaps</a>
+    </nav>
+  </div>
+</header>
+  <div class="game-wrapper">
+    <div id="game">
+      <div id="game-container">
+        <div id="score-display">Score: 0</div>
+        <div id="game-over">Game Over! Score: 0<br>Press R to restart</div>
+      </div>
+    </div>
+  </div>
+  <details style="max-width: 1200px; width:100%; margin: 0.5em auto;">
+    <summary style="color: #00d4ff; cursor: pointer; font-size: 0.82em; padding: 0.3em 0; user-select: none; text-align: center;">Game details &mdash; click to expand</summary>
+    <div class="controls">Move with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> &middot; Press <kbd>R</kbd> to restart &middot; <a href="?bot=true" style="color:#00d4ff;">Bot mode</a></div>
+    <em style="display:block;text-align:center;color:#667;font-size:0.7em;">Built by DeepSeek V4 Flash</em>
+  <table class="stats-table">
+    <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>Game Title</td><td>3D Space Dodge &mdash; Survival in Three.js</td></tr>
+    <tr><td>Model</td><td>DeepSeek V4 Flash</td></tr>
+    <tr><td>Provider</td><td>DeepSeek API</td></tr>
+    <tr><td>Model ID</td><td style="font-family:monospace;font-size:0.85em;color:#8892a0;">deepseek-v4-flash</td></tr>
+    <tr><td>Temperature</td><td>0.7</td></tr>
+    <tr><td>Max Tokens</td><td>4,096</td></tr>
+    <tr><td>Tokens Used</td><td>~8K</td></tr>
+    <tr><td>Build Time</td><td>~30s</td></tr>
+    <tr><td>File Size</td><td>11.5 KB</td></tr>
+    <tr><td>Cost</td><td>$0.001</td></tr>
+    <tr><td>Notes</td><td style="color:#ff6b35;">Built in 2 prompts; 3D using Three.js r128</td></tr>
+    <tr><td>Source</td><td><a href="https://github.com/driphtyio/ai-dodge" style="color:#00d4ff;">github.com/driphtyio/ai-dodge</a></td></tr>
+  </table>
+  </details>
+  <script>
+    const W = 680, H = 480;
+
+    // ---- Three.js Scene Setup ----
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0f1120);
+
+    const camera = new THREE.PerspectiveCamera(50, W / H, 0.1, 2000);
+    camera.position.set(0, 400, 400);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(W, H);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const container = document.getElementById('game-container');
+    container.insertBefore(renderer.domElement, container.firstChild);
+
+    // ---- Lighting ----
+    const ambient = new THREE.AmbientLight(0x303050, 0.6);
+    scene.add(ambient);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(100, 300, 100);
+    dirLight.castShadow = true;
+    scene.add(dirLight);
+
+    const fillLight = new THREE.DirectionalLight(0x4444ff, 0.2);
+    fillLight.position.set(-100, 100, -100);
+    scene.add(fillLight);
+
+    // ---- Ground ----
+    const groundGeo = new THREE.PlaneGeometry(1200, 1200);
+    const groundMat = new THREE.MeshStandardMaterial({
+      color: 0x0d0e1a,
+      roughness: 0.9,
+      metalness: 0.1
+    });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -1;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Grid
+    const gridHelper = new THREE.GridHelper(1000, 30, 0x1a1c30, 0x1a1c30);
+    gridHelper.position.y = -0.5;
+    scene.add(gridHelper);
+
+    // Arena boundary ring
+    const ringGeo = new THREE.RingGeometry(340, 350, 64);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x1e2035,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.5
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0;
+    scene.add(ring);
+
+    // ---- Player ----
+    const playerRadius = 12;
+    const playerGeo = new THREE.SphereGeometry(playerRadius, 20, 20);
+    const playerMat = new THREE.MeshStandardMaterial({
+      color: 0x00d4ff,
+      emissive: 0x006688,
+      emissiveIntensity: 0.6,
+      metalness: 0.3,
+      roughness: 0.2
+    });
+    const player = new THREE.Mesh(playerGeo, playerMat);
+    player.position.set(0, 0, 0);
+    player.castShadow = true;
+    scene.add(player);
+
+    // Player glow (smaller inner sphere)
+    const glowGeo = new THREE.SphereGeometry(playerRadius * 0.6, 16, 16);
+    const glowMat = new THREE.MeshBasicMaterial({
+      color: 0x00d4ff,
+      transparent: true,
+      opacity: 0.3
+    });
+    const glow = new THREE.Mesh(glowGeo, glowMat);
+    player.add(glow);
+
+    // ---- Game State ----
+    const keys = { w: false, a: false, s: false, d: false };
+    const enemyList = [];
+    let score = 0;
+    let gameOver = false;
+    let spawnTimer = 0;
+    let spawnInterval = 2200;
+    let scoreTimer = 0;
+    const playerSpeed = 200;
+    let spawnIndex = 0;
+    const PLAY_BOUNDARY = 330;
+
+    // Bot mode via URL param
+    var botParam = new URLSearchParams(window.location.search).get('bot') || '';
+    var botMode = botParam === 'true';
+    var botTimer = 0;
+    var botDir = { x: 0, z: 0 };
+
+    // UI references
+    const scoreEl = document.getElementById('score-display');
+    const gameOverEl = document.getElementById('game-over');
+
+    // ---- Input ----
+    document.addEventListener('keydown', function(e) {
+      const k = e.key.toLowerCase();
+      if (k === 'w') keys.w = true;
+      if (k === 'a') keys.a = true;
+      if (k === 's') keys.s = true;
+      if (k === 'd') keys.d = true;
+      if (e.key === 'r' || e.key === 'R') {
+        if (gameOver) resetGame();
+      }
+      // Arrow keys
+      if (e.key === 'ArrowUp') keys.w = true;
+      if (e.key === 'ArrowLeft') keys.a = true;
+      if (e.key === 'ArrowDown') keys.s = true;
+      if (e.key === 'ArrowRight') keys.d = true;
+    });
+    document.addEventListener('keyup', function(e) {
+      const k = e.key.toLowerCase();
+      if (k === 'w') keys.w = false;
+      if (k === 'a') keys.a = false;
+      if (k === 's') keys.s = false;
+      if (k === 'd') keys.d = false;
+      if (e.key === 'ArrowUp') keys.w = false;
+      if (e.key === 'ArrowLeft') keys.a = false;
+      if (e.key === 'ArrowDown') keys.s = false;
+      if (e.key === 'ArrowRight') keys.d = false;
+    });
+
+    // ---- Enemy Functions ----
+    function spawnEnemy() {
+      if (gameOver) return;
+      // Spawn from outside the play boundary at a random angle
+      const angle = (spawnIndex * 1.3) % (Math.PI * 2);
+      spawnIndex++;
+      const radius = 450;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+
+      const size = 10 + Math.random() * 12;
+      const enemyGeo = new THREE.BoxGeometry(size, size, size);
+      const enemyMat = new THREE.MeshStandardMaterial({
+        color: 0xff4433,
+        emissive: 0xcc2200,
+        emissiveIntensity: 0.4,
+        metalness: 0.2,
+        roughness: 0.6
+      });
+      const enemy = new THREE.Mesh(enemyGeo, enemyMat);
+      enemy.position.set(x, 0, z);
+      enemy.castShadow = true;
+      scene.add(enemy);
+
+      enemy.userData = {
+        size: size,
+        rotSpeed: (Math.random() - 0.5) * 4,
+        speed: 55 + Math.min(score * 0.8, 60)
+      };
+
+      enemyList.push(enemy);
+    }
+
+    function resetGame() {
+      // Remove all enemies
+      enemyList.forEach(function(e) { scene.remove(e); });
+      enemyList.length = 0;
+      player.position.set(0, 0, 0);
+      score = 0;
+      spawnTimer = 0;
+      scoreTimer = 0;
+      spawnInterval = 2200;
+      gameOver = false;
+      spawnIndex = 0;
+      scoreEl.textContent = 'Score: 0';
+      scoreEl.style.color = '#8892a0';
+      gameOverEl.style.display = 'none';
+      playerMat.emissive.setHex(0x006688);
+      playerMat.color.setHex(0x00d4ff);
+    }
+
+    // ---- Game Loop ----
+    let lastTime = 0;
+
+    function animate(time) {
+      requestAnimationFrame(animate);
+
+      const dt = lastTime ? Math.min((time - lastTime) / 1000, 0.05) : 0.016;
+      lastTime = time;
+
+      if (!gameOver) {
+        // ---- Player Movement ----
+        let vx = 0, vz = 0;
+
+        if (botMode) {
+          // Bot: flee from nearest enemy with wander + edge avoidance
+          var nearest = null, nearDist = Infinity;
+          for (var bi = 0; bi < enemyList.length; bi++) {
+            var be = enemyList[bi];
+            var bdx = player.position.x - be.position.x;
+            var bdz = player.position.z - be.position.z;
+            var bd = Math.sqrt(bdx * bdx + bdz * bdz);
+            if (bd < nearDist) { nearDist = bd; nearest = be; }
+          }
+          if (time > botTimer) {
+            botTimer = time + Math.floor(500 + Math.random() * 1000);
+            botDir = { x: (Math.random() - 0.5) * 2, z: (Math.random() - 0.5) * 2 };
+            var blen = Math.sqrt(botDir.x ** 2 + botDir.z ** 2) || 1;
+            botDir.x /= blen;
+            botDir.z /= blen;
+          }
+          if (nearest && nearDist < 130) {
+            var fdx = player.position.x - nearest.position.x;
+            var fdz = player.position.z - nearest.position.z;
+            var fd = Math.sqrt(fdx * fdx + fdz * fdz) || 1;
+            var fleeWeight = Math.max(0, (130 - nearDist) / 130);
+            vx = (fdx / fd) * playerSpeed * fleeWeight + botDir.x * playerSpeed * (1 - fleeWeight * 0.7);
+            vz = (fdz / fd) * playerSpeed * fleeWeight + botDir.z * playerSpeed * (1 - fleeWeight * 0.7);
+          } else {
+            vx = botDir.x * playerSpeed * 0.6;
+            vz = botDir.z * playerSpeed * 0.6;
+          }
+          var margin = 60;
+          var pDist = Math.sqrt(player.position.x ** 2 + player.position.z ** 2);
+          if (pDist > PLAY_BOUNDARY - margin) {
+            var edgeDirX = -player.position.x / pDist;
+            var edgeDirZ = -player.position.z / pDist;
+            vx += edgeDirX * playerSpeed * 0.5;
+            vz += edgeDirZ * playerSpeed * 0.5;
+          }
+          var maxBotSpeed = 220;
+          var curBotSpeed = Math.sqrt(vx * vx + vz * vz);
+          if (curBotSpeed > maxBotSpeed) {
+            vx = (vx / curBotSpeed) * maxBotSpeed;
+            vz = (vz / curBotSpeed) * maxBotSpeed;
+          }
+        } else {
+          if (keys.w) vz = -playerSpeed;
+          if (keys.s) vz = playerSpeed;
+          if (keys.a) vx = -playerSpeed;
+          if (keys.d) vx = playerSpeed;
+
+          if (vx !== 0 && vz !== 0) {
+            vx *= 0.7071;
+            vz *= 0.7071;
+          }
+        }
+
+        player.position.x += vx * dt;
+        player.position.z += vz * dt;
+
+        // Clamp to boundary
+        const dist = Math.sqrt(player.position.x ** 2 + player.position.z ** 2);
+        if (dist > PLAY_BOUNDARY) {
+          player.position.x = (player.position.x / dist) * PLAY_BOUNDARY;
+          player.position.z = (player.position.z / dist) * PLAY_BOUNDARY;
+        }
+
+        // Player pulse glow
+        glowMat.opacity = 0.2 + Math.sin(time * 0.003) * 0.15;
+
+        // ---- Score Timer ----
+        scoreTimer += dt * 1000;
+        if (scoreTimer >= 1000) {
+          score++;
+          scoreTimer -= 1000;
+          scoreEl.textContent = 'Score: ' + score;
+
+          // Increase difficulty
+          spawnInterval = Math.max(600, 2200 - score * 30);
+          if (spawnInterval < 800 && enemyList.length < 12 + Math.floor(score / 10)) {
+            spawnEnemy();
+          }
+        }
+
+        // ---- Enemy Movement ----
+        for (var i = enemyList.length - 1; i >= 0; i--) {
+          var e = enemyList[i];
+          var dx = player.position.x - e.position.x;
+          var dz = player.position.z - e.position.z;
+          var d = Math.sqrt(dx * dx + dz * dz);
+
+          if (d > 1) {
+            // Move toward player with jitter
+            var jx = (Math.random() - 0.5) * 15;
+            var jz = (Math.random() - 0.5) * 15;
+            var espeed = e.userData.speed * dt;
+            e.position.x += ((dx + jx) / d) * espeed;
+            e.position.z += ((dz + jz) / d) * espeed;
+          }
+
+          // Rotate
+          e.rotation.x += e.userData.rotSpeed * dt;
+          e.rotation.y += e.userData.rotSpeed * dt * 0.7;
+
+          // Despawn if too far
+          if (d > 600) {
+            scene.remove(e);
+            enemyList.splice(i, 1);
+            continue;
+          }
+
+          // Collision detection
+          if (d < playerRadius + e.userData.size * 0.5) {
+            gameOver = true;
+            gameOverEl.textContent = 'Game Over! Score: ' + score + '\nPress R to restart';
+            gameOverEl.style.display = 'block';
+            scoreEl.style.color = '#ff6b35';
+            playerMat.emissive.setHex(0xff2222);
+            playerMat.color.setHex(0xff4444);
+
+            // Telemetry
+            try {
+              var deathPath = 'play:3d-space-dodge:human:s' + score + ':e' + enemyList.length;
+              if (window.goatcounter && goatcounter.count) {
+                goatcounter.count({ path: deathPath, event: true, title: 'Death: ' + score });
+              }
+            } catch(e) {}
+            break;
+          }
+        }
+
+        // ---- Spawn Timer ----
+        spawnTimer += dt * 1000;
+        if (spawnTimer >= spawnInterval) {
+          spawnTimer -= spawnInterval;
+          spawnEnemy();
+        }
+      }
+
+      // ---- Camera Follow ----
+      camera.position.x = player.position.x * 0.5;
+      camera.position.z = player.position.z * 0.5 + 400;
+      camera.lookAt(player.position.x * 0.3, 0, player.position.z * 0.3);
+
+      renderer.render(scene, camera);
+    }
+
+    // Initial enemies
+    for (var i = 0; i < 3; i++) spawnEnemy();
+
+    // Start
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
