@@ -241,7 +241,7 @@
       "cost": 0,
       "bugs": 1,
       "score": 68,
-      "notes": "DEGRADED: Model hit token limit - output truncated. Game loop incomplete. Canvas renders at 300x150 fallback."
+      "notes": "DEGRADED: Model hit token limit - output truncated. WebGL renders (300x150) but game loop incomplete after truncation."
     },
     {
       "model": "Qwen 3.5 9B",
@@ -256,7 +256,7 @@
       "cost": 0,
       "bugs": 6,
       "score": 68,
-      "notes": "DEGRADED: Canvas renders but const reassignment errors. 40% tokens spent on CoT reasoning."
+      "notes": "DEGRADED: 6 const reassignment errors at runtime. WebGL renders (680x480). Game runs but errors degrade gameplay. 40% tokens on CoT reasoning."
     },
     {
       "model": "Llama 3.1 8B",
@@ -271,7 +271,7 @@
       "cost": 0,
       "bugs": 1,
       "score": 70,
-      "notes": "DEGRADED: WebGL error in headless (works in real browser). Fastest local model (128s). Clean output otherwise."
+      "notes": "DEGRADED: WebGL fails in headless Chrome (SwiftShader) - verified working in real browser. Fastest local model (128s)."
     },
     {
       "model": "Gemma-4-12b-qat",
@@ -301,7 +301,7 @@
       "cost": 0,
       "bugs": 1,
       "score": 65,
-      "notes": "DEGRADED: Canvas renders but syntax error in model output. Mid-range local performance."
+      "notes": "DEGRADED: Unbalanced parens (-2). WebGL renders (680x480) but game loop may be affected. Scene initializes."
     },
     {
       "model": "Nemotron-3-Nano-4B",
@@ -316,7 +316,7 @@
       "cost": 0,
       "bugs": 1,
       "score": 65,
-      "notes": "DEGRADED: Canvas renders but has undefined variable error. Compact output (4.8 KB)."
+      "notes": "DEGRADED: Undefined `now` variable. WebGL renders (680x480) but game logic breaks. Compact output (4.8 KB)."
     },
     {
       "model": "Nemotron 3 Ultra (550B)",

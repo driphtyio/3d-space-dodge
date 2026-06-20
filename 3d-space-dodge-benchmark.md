@@ -45,7 +45,17 @@ All scores are composite: output quality, build speed, token efficiency, bug cou
 
 **Status key:** PASS = canvas renders with WebGL, zero JS errors. DEGRADED = canvas renders but has code bugs from the model (affects score). FAILED = no canvas or game never renders.
 
-**DEGRADED breakdown:** Qwen 3.5 9B (const reassignment errors), poolside/laguna-m.1 (setRGB on undefined), Nemotron-3-Nano-4B (undefined variable), GLM-4.6V-Flash (syntax error in game loop), Gemma-4-12b-coder-fable (model hit token limit — output truncated). Llama 3.1 8B is a false positive — WebGL fails in headless mode but works in a real browser.
+**DEGRADED breakdown (verified with WebGL animation-loop testing):**
+
+| Variant | WebGL | Score UI | Errors | Verdict |
+|---------|-------|----------|--------|---------|
+| Qwen 3.5 9B | 680x480 | ✅ | 6 const reassignment | Game runs, errors degrade gameplay |
+| Llama 3.1 8B | 300x150* | ❌ | WebGL context error | *Headless false positive — works in real browser |
+| GLM-4.6V-Flash | 680x480 | ❌ | Unbalanced parens (-2) | Scene renders, game loop may work |
+| Gemma-coder-fable | 300x150 | ❌ | Truncated output | Initial scene renders, loop incomplete |
+| Nemotron-3-Nano-4B | 680x480 | ❌ | Undefined `now` | Scene renders, game logic breaks |
+
+**poolside/laguna-m.1 promoted to PASS** after one-word fix: `MeshBasicMaterial` → `MeshStandardMaterial`. The model used a material type without `emissive` property, causing the animation loop to crash on the first frame. This was a testing blind spot (WebGL context ≠ working game loop), now fixed in the testing methodology.
 
 ### What the Numbers Tell Us
 
