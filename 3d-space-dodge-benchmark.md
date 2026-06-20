@@ -40,9 +40,10 @@ All scores are composite: output quality, build speed, token efficiency, bug cou
 | 14 | **Gemma-4-12b-qat** | Local | 691s | 8,431 | 8.3 KB | $0 | **70** | ✅ |
 | 15 | **Nemotron-3-Nano-4B** | Local | 209s | 5,211 | 4.8 KB | $0 | **65** | ? |
 | 16 | **GPT-OSS-120B** | Free API | ~2s | 3,292 | 6.7 KB | $0 | **60** | ❌ |
+| — | GPT-OSS-20B | Local | 38s | 1,235 | 4.2 KB | $0 | — | FAILED |
+| — | Gemma-4-12b-agentic-fable5 | Local | 234s | 2,577 | 3.6 KB | $0 | — | FAILED |
 
-*GPT-OSS-120B: Prompt 2 ignored instructions entirely. No bot mode, glow, or boundary.
-**Removed from leaderboard:** GPT-OSS-20B (partial build, model evicted from memory) and Gemma-4-12b-agentic-fable5 (multiple syntax errors in output). These models could not complete the benchmark.
+Failed models could not produce a working game. GPT-OSS-20B was evicted from memory mid-task (Prompt 2 never ran). Gemma-4-12b-agentic-fable5 had multiple syntax errors in the model output.
 
 ### What the Numbers Tell Us
 
@@ -119,6 +120,8 @@ Every model's output is playable. Each variant page shows the exact build metric
 | [Gemma-qat](/games/3d-space-dodge/gemma-qat/) | Gemma-4-12b-qat (local) | 691s | $0 | ✅ | Slowest build (11.5 min). Working output. |
 | [Nemotron-3-Nano-4B](/games/3d-space-dodge/nemotron-4b/) | Nemotron-3-Nano-4B (local) | 209s | $0 | ? | Bot code in source but may not activate. |
 | [GPT-OSS-120B](/games/3d-space-dodge/gpt-oss-120b/) | GPT-OSS-120B | ~2s | $0 | ❌ | Prompt 2 ignored. No bot mode. |
+| — | GPT-OSS-20B (local) | 38s | $0 | FAILED | Model evicted from memory. Prompt 2 never ran. |
+| — | Gemma-4-12b-agentic-fable5 (local) | 234s | $0 | FAILED | Syntax errors in model output. Game doesn't render. |
 
 *Partial builds — Prompt 2 did not complete.
 
