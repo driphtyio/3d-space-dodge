@@ -1,7 +1,16 @@
 {
   "title": "LLM Build Leaderboard",
-  "description": "How different language models perform building classic games — tracked across every roadmap build.",
-  "metrics": ["model", "game", "build_time", "tokens_used", "file_size", "cost", "bugs", "score"],
+  "description": "How different language models perform building classic games \u2014 tracked across every roadmap build.",
+  "metrics": [
+    "model",
+    "game",
+    "build_time",
+    "tokens_used",
+    "file_size",
+    "cost",
+    "bugs",
+    "score"
+  ],
   "runs": [
     {
       "model": "DeepSeek V4 Flash (0.4 temp)",
@@ -46,7 +55,7 @@
       "cost": 0,
       "bugs": 0,
       "score": 95,
-      "notes": "Cleanest output — zero bugs, 12s, all features working."
+      "notes": "Cleanest output \u2014 zero bugs, 12s, all features working."
     },
     {
       "model": "owl-alpha",
@@ -66,7 +75,7 @@
     {
       "model": "openai/gpt-oss-20b",
       "model_id": "gpt-oss-20b",
-      "provider": "Local — Mac Mini M4",
+      "provider": "Local \u2014 Mac Mini M4",
       "game": "ai-dodge",
       "game_title": "AI Dodge",
       "game_url": "/games/ai-dodge/gpt-oss/",
@@ -96,7 +105,7 @@
     {
       "model": "Qwen 3.5 9B",
       "model_id": "qwen-3.5-9b",
-      "provider": "Local — Mac Mini M4",
+      "provider": "Local \u2014 Mac Mini M4",
       "game": "ai-dodge",
       "game_title": "AI Dodge",
       "game_url": "/games/ai-dodge/local-qwen-3.5-9b/",
@@ -126,7 +135,7 @@
     {
       "model": "Llama 3.1 8B",
       "model_id": "llama-3.1-8b",
-      "provider": "Local — Mac Mini M4",
+      "provider": "Local \u2014 Mac Mini M4",
       "game": "ai-dodge",
       "game_title": "AI Dodge",
       "game_url": "/games/ai-dodge/local-llama-3.1-8b-local/",
@@ -141,7 +150,7 @@
     {
       "model": "Gemma-4-12b-qat",
       "model_id": "gemma-4-12b-qat",
-      "provider": "Local — Mac Mini M4",
+      "provider": "Local \u2014 Mac Mini M4",
       "game": "ai-dodge",
       "game_title": "AI Dodge",
       "game_url": "/games/ai-dodge/local-gemma-4-12b-qat/",
@@ -156,7 +165,7 @@
     {
       "model": "Gemma-4-12b-coder-fable",
       "model_id": "gemma-4-12b-coder-fable",
-      "provider": "Local — Mac Mini M4",
+      "provider": "Local \u2014 Mac Mini M4",
       "game": "ai-dodge",
       "game_title": "AI Dodge",
       "game_url": "/games/ai-dodge/local-gemma-4-12b-coder-fable5-composer2.5/",
@@ -177,7 +186,7 @@
       "game_url": "/games/ai-dodge-poolside/",
       "build_time": 0,
       "tokens_used": 0,
-      "file_size": "—",
+      "file_size": "\u2014",
       "cost": 0,
       "bugs": 0,
       "score": 0,
@@ -246,7 +255,7 @@
     {
       "model": "Qwen 3.5 9B",
       "model_id": "qwen-3.5-9b",
-      "provider": "Local — Apple Mac Mini M4 (16GB)",
+      "provider": "Local \u2014 Apple Mac Mini M4 (16GB)",
       "game": "3d-space-dodge",
       "game_title": "3D Space Dodge",
       "game_url": "/games/3d-space-dodge/qwen-9b/",
@@ -258,10 +267,10 @@
       "score": 68,
       "notes": "DEGRADED: 6 const reassignment errors at runtime. WebGL renders (680x480). Game runs but errors degrade gameplay. 40% tokens on CoT reasoning."
     },
-{
+    {
       "model": "Gemma-4-12b-qat",
       "model_id": "gemma-4-12b-qat",
-      "provider": "Local — Apple Mac Mini M4 (16GB)",
+      "provider": "Local \u2014 Apple Mac Mini M4 (16GB)",
       "game": "3d-space-dodge",
       "game_title": "3D Space Dodge",
       "game_url": "/games/3d-space-dodge/gemma-qat/",
@@ -274,24 +283,9 @@
       "notes": "Slowest benchmark (11.5 min). Both prompts succeeded. Bot mode working."
     },
     {
-      "model": "GLM-4.6V-Flash",
-      "model_id": "glm-4.6v-flash",
-      "provider": "Local — Apple Mac Mini M4 (16GB)",
-      "game": "3d-space-dodge",
-      "game_title": "3D Space Dodge",
-      "game_url": "/games/3d-space-dodge/glm-4.6v/",
-      "build_time": 354,
-      "tokens_used": 6063,
-      "file_size": "8.8 KB",
-      "cost": 0,
-      "bugs": 1,
-      "score": 65,
-      "notes": "DEGRADED: Unbalanced parens (-2). WebGL renders (680x480) but game loop may be affected. Scene initializes."
-    },
-    {
       "model": "Nemotron-3-Nano-4B",
-            "model_id": "nemotron-3-nano-4b",
-      "provider": "Local — Apple Mac Mini M4 (16GB)",
+      "model_id": "nemotron-3-nano-4b",
+      "provider": "Local \u2014 Apple Mac Mini M4 (16GB)",
       "game": "3d-space-dodge",
       "game_title": "3D Space Dodge",
       "game_url": "/games/3d-space-dodge/nemotron-4b/",
@@ -346,7 +340,7 @@
       "cost": 0,
       "bugs": 0,
       "score": 60,
-      "notes": "Prompt 1 OK. Prompt 2 failed — no bot mode, glow, or boundary. Instruction gap."
+      "notes": "Prompt 1 OK. Prompt 2 failed \u2014 no bot mode, glow, or boundary. Instruction gap."
     },
     {
       "model": "DeepSeek V4 Pro",
@@ -408,6 +402,5 @@
       "score": 91,
       "notes": "Both prompts. Bot mode. Large output (16.1 KB). Fast free-tier inference."
     }
- 
   ]
 }
