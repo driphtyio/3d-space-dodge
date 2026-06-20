@@ -151,3 +151,17 @@ Every model's output is playable. Each variant page shows the exact build metric
 ### Key Takeaway
 
 **11 PASS, 1 DEGRADED, 6 FAILED** from 18 models tested. **All 10 API models passed** (DeepSeek API, OpenRouter, Free API). **Only 2 of 8 local models produced working output** (Gemma-4-12b-qat PASS, Qwen 3.5 9B DEGRADED — 6 failed entirely). Speed and output size matter less than whether the code actually runs — a model that finishes in 2 seconds with broken JavaScript is worse than one that takes 30 seconds with clean output. The next test is harder: can these models build an 80s-era game with AI, tilemaps, and state machines?
+
+### Why Local Models Failed
+
+The 6 local failures aren't about parameter count alone. Gemma-4-12b-coder-fable (12B) hit the token limit mid-function and Gemma-4-12b-agentic-fable5 (12B) produced syntactically invalid output — yet Gemma-4-12b-qat (12B, same size) passed cleanly. Meanwhile, free-tier API models like Mistral Small (likely 7B) passed with a score of 88 — smaller than most local models that failed.
+
+Three patterns emerge:
+
+1. **Quantization quality matters more than size.** The two local models that work (Gemma-qat, Qwen 3.5 9B) are quantization-optimized variants, not raw checkpoints. QAT (quantization-aware training) preserves code-generation capability that standard quantization strips away.
+
+2. **Test-time compute is the real bottleneck.** Local models share memory with the OS on a 16GB Mac Mini. When they hit a tricky spot (closing a complex expression, tracking nested parentheses), they have no headroom to self-correct. API models run on dedicated hardware with higher generation budgets — they can afford to be verbose and careful.
+
+3. **Iteration kills local models.** Prompt 1 → Prompt 2 was where most broke. They could produce an initial scene, but couldn't correctly modify it without introducing syntax errors (extra parens, undefined vars, wrong material types). That's a working-memory / context-retention issue under compound instructions.
+
+The takeaway for builders: if you're iterating on a game with an LLM, use an API model. Local models are improving but the failure rate (6/8) is too high for production use — even for a simple 3D dodge game.
