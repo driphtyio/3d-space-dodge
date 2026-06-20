@@ -1,0 +1,123 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_TITLE } from '../consts';
+import runs from '../content/leaderboard/benchmark-runs.json';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <BaseHead title={`LLM Leaderboard — ${SITE_TITLE}`} description="How different language models perform building classic arcade games. Tracked across every roadmap build." />
+  </head>
+  <body>
+    <Header />
+    <main>
+      <h1>LLM Build Leaderboard</h1>
+      <p class="page-sub">Each game on our roadmaps is built with multiple LLMs. This page tracks how each model performs — speed, quality, cost, and bugs — so you can pick the right model for your next build.</p>
+
+      <div class="leaderboard-controls">
+        <label for="gameFilter">Filter by game:</label>
+        <select id="gameFilter">
+          <option value="all">All Games</option>
+          {Array.from(new Map(runs.runs.map(r => [r.game, {slug: r.game, title: r.game_title}])).values()).sort((a,b) => a.title.localeCompare(b.title)).map(g => (
+            <option value={g.slug}>{g.title}</option>
+          ))}
+        </select>
+        <label for="eraFilter" style="margin-left:1em;">Era:</label>
+        <select id="eraFilter">
+          <option value="all">All Eras</option>
+          <option value="2d">2D</option>
+          <option value="3d">3D</option>
+        </select>
+        <span class="run-count">{runs.runs.filter(r => r.score > 0).length} benchmark runs</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="leaderboard" id="leaderboard">
+          <thead>
+            <tr>
+              <th data-sort="score" class="sortable active desc">Score</th>
+              <th data-sort="model">Model</th>
+              <th data-sort="provider">Provider</th>
+              <th data-sort="game">Game</th>
+              <th data-sort="build_time">Time</th>
+              <th data-sort="tokens_used">Tokens</th>
+              <th data-sort="cost">Cost</th>
+              <th data-sort="bugs">Bugs</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {runs.runs.filter(r => r.score > 0).sort((a, b) => b.score - a.score).map(run => (
+              <tr data-game={run.game} data-era={run.game === '3d-space-dodge' ? '3d' : '2d'}>
+                <td class="score-col"><span class="score-badge" style={`background: ${run.score >= 90 ? 'rgba(0,255,135,0.15)' : run.score >= 80 ? 'rgba(0,212,255,0.12)' : run.score >= 70 ? 'rgba(255,107,53,0.1)' : 'rgba(130,145,170,0.08)'}; color: ${run.score >= 90 ? 'var(--accent-green)' : run.score >= 80 ? 'var(--accent-secondary)' : run.score >= 70 ? 'var(--accent)' : 'rgb(var(--gray))'}`}>{run.score}</span></td>
+                <td><strong>{run.model}</strong></td>
+                <td class="provider-col">{run.provider}</td>
+                <td><a href={run.game_url}>{run.game_title}</a></td>
+                <td>{run.build_time > 0 ? `${run.build_time}s` : '—'}</td>
+                <td>{run.tokens_used > 0 ? run.tokens_used.toLocaleString() : '—'}</td>
+                <td>{run.cost > 0 ? `$${run.cost.toFixed(4)}` : run.cost === 0 ? '$0' : '—'}</td>
+                <td>{run.bugs > 0 ? run.bugs : run.score > 0 ? '0' : '—'}</td>
+                <td class="notes-col">{run.notes}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="empty-state" id="emptyState" style="display:none;">
+        <p>No benchmark runs for this game yet. Results appear once we build it.</p>
+      </div>
+
+      <div class="leaderboard-footer">
+        <h2>How Scoring Works</h2>
+        <p>Scores are weighted: <strong>output quality (40%)</strong> — functional completeness, feature coverage; <strong>speed (25%)</strong> — build time relative to fastest model; <strong>efficiency (20%)</strong> — tokens used vs output size; <strong>bug count (15%)</strong> — zero bugs = full marks. Local models get a cost bonus (free inference).</p>
+      </div>
+    </main>
+    <Footer />
+
+    <script>
+      function filterRows() {
+        const gameVal = document.getElementById('gameFilter').value;
+        const eraVal = document.getElementById('eraFilter').value;
+        let visible = 0;
+        document.querySelectorAll('#leaderboard tbody tr').forEach(row => {
+          const gameMatch = gameVal === 'all' || row.dataset.game === gameVal;
+          const eraMatch = eraVal === 'all' || row.dataset.era === eraVal;
+          const show = gameMatch && eraMatch;
+          row.style.display = show ? '' : 'none';
+          if (show) visible++;
+        });
+        document.getElementById('emptyState').style.display = visible > 0 ? 'none' : 'block';
+      }
+      document.getElementById('gameFilter')?.addEventListener('change', filterRows);
+      document.getElementById('eraFilter')?.addEventListener('change', filterRows);
+    </script>
+
+    <style>
+      .page-sub { color: rgb(var(--gray)); max-width: 680px; margin: 0 0 2em; line-height: 1.6; }
+      .leaderboard-controls { display: flex; align-items: center; gap: 0.75em; margin-bottom: 1.5em; flex-wrap: wrap; }
+      .leaderboard-controls label { font-size: 0.85em; color: rgb(var(--gray)); }
+      .leaderboard-controls select { background: var(--bg-card); border: 1px solid var(--border); color: #e8edf4; padding: 0.4em 0.8em; border-radius: 8px; font-size: 0.85em; }
+      .run-count { font-size: 0.78em; color: rgb(var(--gray)); margin-left: auto; }
+      .table-wrap { overflow-x: auto; border: 1px solid var(--border-light); border-radius: 12px; }
+      table.leaderboard { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+      table.leaderboard th { background: var(--bg-card); padding: 0.75em 1em; text-align: left; font-weight: 600; color: var(--accent-secondary); border-bottom: 1px solid var(--border); white-space: nowrap; }
+      table.leaderboard td { padding: 0.65em 1em; border-bottom: 1px solid var(--border-light); color: rgb(var(--gray-dark)); }
+      table.leaderboard tr:last-child td { border-bottom: none; }
+      table.leaderboard tr:hover td { background: rgba(255,255,255,0.02); }
+      table.leaderboard a { color: var(--accent-secondary); text-decoration: none; }
+      table.leaderboard a:hover { text-decoration: underline; }
+      .score-col { width: 60px; }
+      .score-badge { display: inline-block; padding: 0.15em 0.5em; border-radius: 6px; font-weight: 700; font-size: 0.9em; min-width: 2.2em; text-align: center; }
+      .provider-col { font-size: 0.85em; color: rgb(var(--gray)); }
+      .notes-col { font-size: 0.82em; color: rgb(var(--gray)); max-width: 250px; }
+      .empty-state { text-align: center; padding: 2em; color: rgb(var(--gray)); }
+      .leaderboard-footer { margin-top: 2em; padding: 1.25em 1.5em; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-light); }
+      .leaderboard-footer h2 { font-size: 1em; margin: 0 0 0.5em; }
+      .leaderboard-footer p { margin: 0; font-size: 0.82em; color: rgb(var(--gray)); line-height: 1.6; }
+    </style>
+  </body>
+</html>
