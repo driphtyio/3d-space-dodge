@@ -20,7 +20,7 @@ No human edits. No intermediate feedback. Two shots per model.
 
 ### The Full Results
 
-All scores are composite: output quality, build speed, token efficiency, bug count, and feature completeness. Results verified via Playwright headless browser testing.
+All scores are composite: output quality, build speed, token efficiency, bug count, and feature completeness. Results verified via Playwright with WebGL-enabled headless Chromium (SwiftShader software rendering).
 
 | Rank | Model | Type | Time | Tokens | Size | Cost | Score | Status |
 |------|-------|------|------|--------|------|------|-------|--------|
@@ -32,26 +32,28 @@ All scores are composite: output quality, build speed, token efficiency, bug cou
 | 6 | **Mistral Small** | Free API | 21s | 6,689 | 11.6 KB | $0 | **88** | PASS |
 | 7 | **owl-alpha** | Free API | 6s | 8,913 | 13.1 KB | $0 | **85** | PASS |
 | 8 | **Gemma-4-31B** | Free API | ~2s | 4,032 | 7.9 KB | $0 | **82** | PASS |
-| 9 | **poolside/laguna-m.1** | Free API | ~2s | 7,796 | 6.7 KB | $0 | **80** | DEGRADED |
-| 10 | **Llama 3.1 8B** | Local | 128s | 2,591 | 8.0 KB | $0 | **76** | DEGRADED |
-| 11 | **Qwen 3.5 9B** | Local | 462s | 5,435 | 9.5 KB | $0 | **74** | DEGRADED |
-| 12 | **GLM-4.6V-Flash** | Local | 354s | 6,063 | 8.8 KB | $0 | **71** | DEGRADED |
-| 13 | **Gemma-4-12b-qat** | Local | 691s | 8,431 | 8.3 KB | $0 | **70** | PASS |
-| 14 | **Gemma-4-12b-coder-fable** | Local | 181s | 2,128 | 3.4 KB | $0 | **68** | DEGRADED |
-| 15 | **Nemotron-3-Nano-4B** | Local | 209s | 5,211 | 4.8 KB | $0 | **65** | DEGRADED |
+| 9 | **poolside/laguna-m.1** | Free API | ~2s | 7,796 | 6.7 KB | $0 | **75** | DEGRADED |
+| 10 | **Llama 3.1 8B** | Local | 128s | 2,591 | 8.0 KB | $0 | **70** | DEGRADED |
+| 11 | **Qwen 3.5 9B** | Local | 462s | 5,435 | 9.5 KB | $0 | **68** | DEGRADED |
+| 12 | **Gemma-4-12b-qat** | Local | 691s | 8,431 | 8.3 KB | $0 | **70** | PASS |
+| 13 | **GLM-4.6V-Flash** | Local | 354s | 6,063 | 8.8 KB | $0 | **65** | DEGRADED |
+| 14 | **Gemma-4-12b-coder-fable** | Local | 181s | 2,128 | 3.4 KB | $0 | **62** | DEGRADED |
+| 15 | **Nemotron-3-Nano-4B** | Local | 209s | 5,211 | 4.8 KB | $0 | **60** | DEGRADED |
 | 16 | **GPT-OSS-120B** | Free API | ~2s | 3,292 | 6.7 KB | $0 | **60** | PASS |
 | — | GPT-OSS-20B | Local | 38s | 1,235 | 4.2 KB | $0 | — | FAILED |
 | — | Gemma-4-12b-agentic-fable5 | Local | 234s | 2,577 | 3.6 KB | $0 | — | FAILED |
 
-**Status key:** PASS = canvas renders, THREE.js loaded, zero JS errors. DEGRADED = canvas renders but has JS errors from model output (bugs count toward score). FAILED = no canvas or page doesn't load.
+**Status key:** PASS = canvas renders with WebGL, zero JS errors. DEGRADED = canvas renders but has code bugs from the model (affects score). FAILED = no canvas or game never renders.
 
-**Failed models:** GPT-OSS-20B was evicted from memory mid-task (Prompt 2 never ran). Gemma-4-12b-agentic-fable5 has multiple syntax errors in the model output — game never renders.
-
-**DEGRADED details:** DeepSeek V4 Pro and Llama 3.1 8B use ES module imports — THREE.js is loaded internally but not as a global. The "DEGRADED" flag is a false positive for these two; they work correctly in a browser. The remaining DEGRADED variants have genuine code bugs from the model output (const reassignment, undefined variables, syntax errors).
+**DEGRADED breakdown:** Qwen 3.5 9B (const reassignment errors), poolside/laguna-m.1 (setRGB on undefined), Nemotron-3-Nano-4B (undefined variable), GLM-4.6V-Flash (syntax error in game loop), Gemma-4-12b-coder-fable (model hit token limit — output truncated). Llama 3.1 8B is a false positive — WebGL fails in headless mode but works in a real browser.
 
 ### What the Numbers Tell Us
 
-**10 of 18 models shipped clean working games.** 6 have JS errors from the model output (DEGRADED — canvas renders but code quality issues) and 2 failed completely (no canvas at all). The model's code bugs are part of the test — we did not fix broken model outputs.
+**Only 10 of 18 models shipped clean working games.** 5 produce WebGL-rendered output but have code bugs from the model (const reassignment, undefined variables, syntax errors in game logic). 2 failed completely (no canvas). 1 is a headless testing false positive (works in browser).
+
+**Model code bugs are part of the test.** We did not fix broken model outputs. If a model produces syntactically invalid JavaScript, undefined variables, or runtime errors — that's its score. DEGRADED status means the game loads visually but has issues that affect gameplay.
+
+**Cloud APIs still dominate — 8 of the top 10 are cloud.**
 
 **Speed gap is absurd.** Cloud models finish in 2-30 seconds. Local models take 2-11 minutes. The 550B Nemotron Ultra on OpenRouter finished in 2 seconds — faster than the 4B Nemotron Nano running locally (209s). That's a 100x speedup for using API vs local.
 
@@ -121,13 +123,12 @@ Every model's output is playable. Each variant page shows the exact build metric
 | [Mistral Small](/games/3d-space-dodge/mistral-small/) | Mistral Small | 21s | $0 | PASS | Clean output. |
 | [owl-alpha](/games/3d-space-dodge/owl-alpha/) | owl-alpha | 6s | $0 | PASS | Free tier. Clean. |
 | [Gemma-4-31B](/games/3d-space-dodge/gemma-31b/) | Gemma-4-31B | ~2s | $0 | PASS | Free tier. Clean. |
-| [poolside/laguna-m.1](/games/3d-space-dodge/poolside-laguna/) | poolside/laguna-m.1 | ~2s | $0 | DEGRADED | Canvas renders. Has setRGB runtime error. |
-| [Llama 3.1 8B](/games/3d-space-dodge/llama-8b/) | Llama 3.1 8B (local) | 128s | $0 | DEGRADED | WebGL error in headless — works in browser. |
-| [Qwen 3.5 9B](/games/3d-space-dodge/qwen-9b/) | Qwen 3.5 9B (local) | 462s | $0 | DEGRADED | Canvas renders. Const reassignment errors at runtime. |
-| [GLM-4.6V-Flash](/games/3d-space-dodge/glm-4.6v/) | GLM-4.6V-Flash (local) | 354s | $0 | DEGRADED | Canvas renders. Syntax error in model output. |
-| [Gemma-qat](/games/3d-space-dodge/gemma-qat/) | Gemma-4-12b-qat (local) | 691s | $0 | PASS | Slowest build. Clean output. |
-| [Gemma-coder-fable](/games/3d-space-dodge/gemma-coder/) | Gemma-4-12b-coder-fable (local) | 181s | $0 | DEGRADED | Model hit token limit. Output truncated. |
-| [Nemotron-3-Nano-4B](/games/3d-space-dodge/nemotron-4b/) | Nemotron-3-Nano-4B (local) | 209s | $0 | DEGRADED | Canvas renders. Undefined variable in model output. |
+| [poolside/laguna-m.1](/games/3d-space-dodge/poolside-laguna/) | poolside/laguna-m.1 | ~2s | $0 | DEGRADED | WebGL renders. Has setRGB runtime error in model code. |
+| [Llama 3.1 8B](/games/3d-space-dodge/llama-8b/) | Llama 3.1 8B (local) | 128s | $0 | DEGRADED | WebGL fails in headless — works in regular browser. |
+| [Qwen 3.5 9B](/games/3d-space-dodge/qwen-9b/) | Qwen 3.5 9B (local) | 462s | $0 | DEGRADED | WebGL renders. Const reassignment errors at runtime. |
+| [GLM-4.6V-Flash](/games/3d-space-dodge/glm-4.6v/) | GLM-4.6V-Flash (local) | 354s | $0 | DEGRADED | WebGL renders. Syntax error in model output. |
+| [Gemma-coder-fable](/games/3d-space-dodge/gemma-coder/) | Gemma-4-12b-coder-fable (local) | 181s | $0 | DEGRADED | WebGL renders. Model hit token limit — output truncated. |
+| [Nemotron-3-Nano-4B](/games/3d-space-dodge/nemotron-4b/) | Nemotron-3-Nano-4B (local) | 209s | $0 | DEGRADED | WebGL renders. Undefined variable in model output. |
 | [GPT-OSS-120B](/games/3d-space-dodge/gpt-oss-120b/) | GPT-OSS-120B | ~2s | $0 | PASS | Prompt 2 ignored — no bot mode. Zero JS errors otherwise. |
 | — | GPT-OSS-20B (local) | 38s | $0 | **FAILED** | Model evicted from memory. Prompt 2 never ran. |
 | — | Gemma-4-12b-agentic-fable5 (local) | 234s | $0 | **FAILED** | Syntax errors in model output. Game never renders. |

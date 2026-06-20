@@ -254,8 +254,8 @@
       "tokens_used": 5435,
       "file_size": "9.5 KB",
       "cost": 0,
-      "bugs": 0,
-      "score": 74,
+      "bugs": 6,
+      "score": 68,
       "notes": "DEGRADED: Canvas renders but const reassignment errors. 40% tokens spent on CoT reasoning."
     },
     {
@@ -269,8 +269,8 @@
       "tokens_used": 2591,
       "file_size": "8.0 KB",
       "cost": 0,
-      "bugs": 0,
-      "score": 76,
+      "bugs": 1,
+      "score": 70,
       "notes": "DEGRADED: WebGL error in headless (works in real browser). Fastest local model (128s). Clean output otherwise."
     },
     {
@@ -299,8 +299,8 @@
       "tokens_used": 6063,
       "file_size": "8.8 KB",
       "cost": 0,
-      "bugs": 0,
-      "score": 71,
+      "bugs": 1,
+      "score": 65,
       "notes": "DEGRADED: Canvas renders but syntax error in model output. Mid-range local performance."
     },
     {
@@ -344,8 +344,8 @@
       "tokens_used": 7796,
       "file_size": "6.7 KB",
       "cost": 0,
-      "bugs": 0,
-      "score": 80,
+      "bugs": 1,
+      "score": 75,
       "notes": "DEGRADED: Canvas renders but has setRGB runtime error. Free tier. Both prompts."
     },
     {
