@@ -62,4 +62,4 @@ The natural next step: give the enemies a brain too. If enemies predict player p
 
 But for now, the takeaway is honest: **a 6-parameter bot evolved in 2 generations trivially beats the game.** The enemies are the bottleneck, not the bot.
 
-[Play 3D Space Dodge](/games/3d-space-dodge/) &middot; [View the benchmark](/blog/3d-space-dodge-benchmark/)
+[Play 3D Space Dodge](/games/3d-space-dodge/) &middot; [View the benchmark](/blog/3d-space-dodge-benchmark/) &middot; [GitHub Repo — full data and simulation code](https://github.com/driphtyio/3d-space-dodge)
