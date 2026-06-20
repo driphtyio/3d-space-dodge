@@ -96,11 +96,11 @@ Every model's output is playable. Each variant page shows the exact build metric
 | [poolside/laguna-m.1](/games/3d-space-dodge/poolside-laguna/) | poolside/laguna-m.1 | ~2s | $0 | ✅ | Free tier. Compact but functional. |
 | [Llama 3.1 8B](/games/3d-space-dodge/llama-8b/) | Llama 3.1 8B (local) | 128s | $0 | ✅ | Best local option. Fastest local (128s). |
 | [Qwen 3.5 9B](/games/3d-space-dodge/qwen-9b/) | Qwen 3.5 9B (local) | 462s | $0 | ✅ | 40% of tokens spent on CoT reasoning. |
-| [Gemma-coder-fable](/games/3d-space-dodge/gemma-coder/) | Gemma-4-12b-coder-fable (local) | 181s | $0 | ✅ | Compact output (3.4 KB). CDN typo fixed. |
+| [Gemma-coder-fable](/games/3d-space-dodge/gemma-coder/) | Gemma-4-12b-coder-fable (local) | 181s | $0 | ? | Partial bot — detects ?bot=true URL but has no flee/wander steering logic. |
 | [GLM-4.6V-Flash](/games/3d-space-dodge/glm-4.6v/) | GLM-4.6V-Flash (local) | 354s | $0 | ✅ | Mid-range local performance. |
 | [Gemma-4-12b-qat](/games/3d-space-dodge/gemma-qat/) | Gemma-4-12b-qat (local) | 691s | $0 | ✅ | Slowest build (11.5 min). Working output. |
-| [Nemotron-3-Nano-4B](/games/3d-space-dodge/nemotron-4b/) | Nemotron-3-Nano-4B (local) | 209s | $0 | ✅ | Smallest output (4.8 KB). 4B params. |
-| [Gemma-agentic-fable5](/games/3d-space-dodge/gemma-agentic-fable/) | Gemma-4-12b-agentic-fable5 (local) | 234s | $0 | ❌ | Syntax error in output (unbalanced parens). Game doesn't render. |
+| [Nemotron-3-Nano-4B](/games/3d-space-dodge/nemotron-4b/) | Nemotron-3-Nano-4B (local) | 209s | $0 | ? | Bot code present but player didn't move — may not activate correctly. |
+| [Gemma-agentic-fable5](/games/3d-space-dodge/gemma-agentic-fable/) | Gemma-4-12b-agentic-fable5 (local) | 234s | $0 | ❌ | Syntax error in output. Game doesn't render. |
 | [GPT-OSS-120B](/games/3d-space-dodge/gpt-oss-120b/) | GPT-OSS-120B | ~2s | $0 | ❌ | Prompt 2 ignored. No bot mode or features added. |
 | [GPT-OSS-20B](/games/3d-space-dodge/gpt-oss-20b/) | GPT-OSS-20B (local) | 38s* | $0 | ❌ | Prompt 2 failed — model evicted from memory. |
 
