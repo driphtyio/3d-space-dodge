@@ -241,7 +241,7 @@
       "cost": 0,
       "bugs": 1,
       "score": 68,
-      "notes": "Compact output (3.4 KB). Bot mode partial. Model hit token limit - stripped [truncated] artifact from output."
+      "notes": "DEGRADED: Model hit token limit - output truncated. Game loop incomplete. Canvas renders at 300x150 fallback."
     },
     {
       "model": "Qwen 3.5 9B",
@@ -256,7 +256,7 @@
       "cost": 0,
       "bugs": 0,
       "score": 74,
-      "notes": "Two prompts. 2,165 reasoning tokens overhead. Bot mode working. Slowest overall."
+      "notes": "DEGRADED: Canvas renders but const reassignment errors. 40% tokens spent on CoT reasoning."
     },
     {
       "model": "Llama 3.1 8B",
@@ -271,7 +271,7 @@
       "cost": 0,
       "bugs": 0,
       "score": 76,
-      "notes": "Both prompts. Bot mode working. Fastest local model (128s). Clean output."
+      "notes": "DEGRADED: WebGL error in headless (works in real browser). Fastest local model (128s). Clean output otherwise."
     },
     {
       "model": "Gemma-4-12b-qat",
@@ -301,7 +301,7 @@
       "cost": 0,
       "bugs": 0,
       "score": 71,
-      "notes": "Both prompts. Bot mode working. Fixed missing `now` declaration. Mid-range local performance."
+      "notes": "DEGRADED: Canvas renders but syntax error in model output. Mid-range local performance."
     },
     {
       "model": "Nemotron-3-Nano-4B",
@@ -316,7 +316,7 @@
       "cost": 0,
       "bugs": 1,
       "score": 65,
-      "notes": "Smallest output (4.8 KB). Bot code in source but may not activate. `now` is valid function param - no fix needed."
+      "notes": "DEGRADED: Canvas renders but has undefined variable error. Compact output (4.8 KB)."
     },
     {
       "model": "Nemotron 3 Ultra (550B)",
@@ -346,7 +346,7 @@
       "cost": 0,
       "bugs": 0,
       "score": 80,
-      "notes": "Free tier. Both prompts. Bot mode working. Fixed missing `now` declaration. Compact output."
+      "notes": "DEGRADED: Canvas renders but has setRGB runtime error. Free tier. Both prompts."
     },
     {
       "model": "GPT-OSS-120B",
